@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="744.09448819"
+   height="1052.3622047"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.48.4 r9939"
+   sodipodi:docname="imgproc_labels.svg"
+   inkscape:export-filename="/lcg/home/marroquim/devel/tucano/src/gui/button.ppm.png"
+   inkscape:export-xdpi="23"
+   inkscape:export-ydpi="23">
+  <defs
+     id="defs4" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.98994949"
+     inkscape:cx="96.524922"
+     inkscape:cy="756.48535"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1855"
+     inkscape:window-height="1056"
+     inkscape:window-x="65"
+     inkscape:window-y="24"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <text
+       xml:space="preserve"
+       style="font-size:74.29336548px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="78.420021"
+       y="175.93362"
+       id="text3793"
+       sodipodi:linespacing="125%"
+       inkscape:export-filename="/home/marroquim/devel/tucano/samples/assets/diffuse.png"
+       inkscape:export-xdpi="200"
+       inkscape:export-ydpi="200"><tspan
+         sodipodi:role="line"
+         id="tspan3795"
+         x="78.420021"
+         y="175.93362"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Abyssinica SIL;-inkscape-font-specification:Abyssinica SIL">mean filter</tspan></text>
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:10;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+       id="rect2990"
+       width="423.79102"
+       height="90.440643"
+       x="64.886307"
+       y="107.09595"
+       rx="6.4510164"
+       ry="12.044007" />
+    <g
+       id="g3783"
+       inkscape:export-filename="/home/marroquim/devel/tucano/samples/assets/hgrad_button.png"
+       inkscape:export-xdpi="200"
+       inkscape:export-ydpi="200">
+      <text
+         xml:space="preserve"
+         style="font-size:74.29336548px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+         x="78.420021"
+         y="295.21933"
+         id="text2985"
+         sodipodi:linespacing="125%"
+         inkscape:export-filename="/home/marroquim/devel/tucano/samples/assets/ambient.png"
+         inkscape:export-xdpi="200"
+         inkscape:export-ydpi="200"><tspan
+           id="tspan3778"
+           sodipodi:role="line"
+           x="78.420021"
+           y="295.21933"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Abyssinica SIL;-inkscape-font-specification:Abyssinica SIL">H grad </tspan></text>
+      <rect
+         style="fill:none;stroke:#000000;stroke-width:10;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+         id="rect3008"
+         width="273.49173"
+         height="91.6642"
+         x="64.274529"
+         y="227.70247"
+         rx="4.1631355"
+         ry="12.206948" />
+    </g>
+    <g
+       id="g3788"
+       inkscape:export-filename="/home/marroquim/devel/tucano/samples/assets/vgrad_button.png"
+       inkscape:export-xdpi="200"
+       inkscape:export-ydpi="200">
+      <text
+         inkscape:export-ydpi="200"
+         inkscape:export-xdpi="200"
+         inkscape:export-filename="/home/marroquim/devel/tucano/samples/assets/specular.png"
+         sodipodi:linespacing="125%"
+         id="text2989"
+         y="411.64789"
+         x="78.420021"
+         style="font-size:74.29336548px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+         xml:space="preserve"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Abyssinica SIL;-inkscape-font-specification:Abyssinica SIL"
+           y="411.64789"
+           x="78.420021"
+           id="tspan2991"
+           sodipodi:role="line">V grad</tspan></text>
+      <rect
+         ry="12.228951"
+         rx="4.1656508"
+         y="341.76709"
+         x="64.191917"
+         height="91.82943"
+         width="273.65692"
+         id="rect3782"
+         style="fill:none;stroke:#000000;stroke-width:10;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+    </g>
+  </g>
+</svg>
