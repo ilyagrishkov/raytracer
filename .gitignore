@@ -5,3 +5,8 @@
 # Windows files and folders
 
 /.vs
+raytracing.sln
+raytracing.vcxproj
+raytracing.vcxproj.filters
+raytracing.vcxproj.user
+
