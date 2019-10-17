@@ -1,6 +1,7 @@
 # Linux files and folders
 
 /build
+CMakeLists.txt
 
 # Windows files and folders
 
