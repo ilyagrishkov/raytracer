@@ -1,8 +1,3 @@
-<<<<<<< Updated upstream
-# raytracing
-Computer Graphics Group 15 Project
-test push
-=======
 # Ray Tracing with OpenGL Debugging
 
 ## Final Project CSE
@@ -463,4 +458,3 @@ of your project work to have taken place on Brightspacebefore 31 October
 Do you have any questions not answered in this report? Send a
 message to: j.w.d.alderliesten@student.tudelft.nl.
 ```
->>>>>>> Stashed changes
