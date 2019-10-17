@@ -11,3 +11,7 @@ raytracing.vcxproj
 raytracing.vcxproj.filters
 raytracing.vcxproj.user
 
+# Mac files and folders
+
+.DS_Store
+
