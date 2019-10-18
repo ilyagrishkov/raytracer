@@ -11,3 +11,5 @@ raytracing.vcxproj
 raytracing.vcxproj.filters
 raytracing.vcxproj.user
 
+raytracing.tlog
+Debug/
