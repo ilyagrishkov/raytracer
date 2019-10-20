@@ -16,6 +16,121 @@
 #include <tucano/utils/mtlIO.hpp>
 #include <tucano/utils/objimporter.hpp>
 
+struct boundingBox {
+	float xMax;
+	float xMin;
+	float yMax;
+	float yMin;
+	float zMax;
+	float zMin;
+	std::vector<boundingBox> children;
+	std::vector<Tucano::Face> faces;
+
+	boundingBox() {
+		xMax = -FLT_MAX;
+		xMin = FLT_MAX;
+		yMax = -FLT_MAX;
+		yMin = FLT_MAX;
+		zMax = -FLT_MAX;
+		zMin = FLT_MAX;
+	}
+
+};
+
+struct vectorTwo {
+	float x;
+	float y;
+
+	vectorTwo operator/ (float divisor) {
+		vectorTwo out;
+		out.x = x / divisor;
+		out.y = y / divisor;
+		return out;
+	}
+
+	vectorTwo operator- (vectorTwo other) {
+		vectorTwo out;
+		out.x = x - other.x;
+		out.y = y - other.y;
+		return out;
+	}
+
+	vectorTwo operator+ (vectorTwo other) {
+		vectorTwo out;
+		out.x = x + other.x;
+		out.y = y + other.y;
+		return out;
+	}
+
+	vectorTwo operator* (vectorTwo other) {
+		vectorTwo out;
+		out.x = other.x * x;
+		out.y = other.y * y;
+		return out;
+	}
+
+	vectorTwo operator* (float other) {
+		vectorTwo out;
+		out.x = other * x;
+		out.y = other * y;
+		return out;
+	}
+
+	float length() {
+		return sqrt(x * x + y * y);
+	}
+};
+
+struct vectorThree {
+	float x;
+	float y;
+	float z;
+
+	vectorThree operator/ (float divisor) {
+		vectorThree out;
+		out.x = x / divisor;
+		out.y = y / divisor;
+		out.z = z / divisor;
+		return out;
+	}
+
+	vectorThree operator- (vectorThree other) {
+		vectorThree out;
+		out.x = x - other.x;
+		out.y = y - other.y;
+		out.z = z - other.z;
+		return out;
+	}
+
+	vectorThree operator+ (vectorThree other) {
+		vectorThree out;
+		out.x = x + other.x;
+		out.y = y + other.y;
+		out.z = z + other.z;
+		return out;
+	}
+
+	vectorThree operator* (vectorThree other) {
+		vectorThree out;
+		out.x = other.x * x;
+		out.y = other.y * y;
+		out.z = other.z * z;
+		return out;
+	}
+
+	vectorThree operator* (float other) {
+		vectorThree out;
+		out.x = other * x;
+		out.y = other * y;
+		out.z = other * z;
+		return out;
+	}
+
+	float length() {
+		return sqrt(x * x + y * y + z * z);
+	}
+};
+
 class Flyscene {
 
 public:
@@ -67,7 +182,7 @@ public:
    * @param dest Other point on the ray, usually screen coordinates
    * @return a RGB color
    */
-  Eigen::Vector3f traceRay(Eigen::Vector3f &origin, Eigen::Vector3f &dest);
+  Eigen::Vector3f traceRay(Eigen::Vector3f &origin, Eigen::Vector3f &dest, std::vector<boundingBox> &boxes);
 
 private:
   // A simple phong shader for rendering meshes

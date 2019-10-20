@@ -13,3 +13,4 @@ raytracing.vcxproj.user
 
 raytracing.tlog
 Debug/
+/result.ppm
