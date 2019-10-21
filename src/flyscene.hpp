@@ -137,6 +137,7 @@ struct face {
 	vectorThree vertex2;
 	vectorThree vertex3;
 	vectorThree normal;
+	int material_id;
 };
 
 struct boundingBox {

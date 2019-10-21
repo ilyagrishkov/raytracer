@@ -172,7 +172,8 @@ void Flyscene::raytraceScene(int width, int height) {
 	  {vertex1[0], vertex1[1], vertex1[2]},
 	  {vertex2[0], vertex2[1], vertex2[2]},
 	  {vertex3[0], vertex3[1], vertex3[2]},
-	  {normal[0], normal[1], normal[2]} };
+	  {normal[0], normal[1], normal[2]},
+	  oldFace.material_id};
 
 	  myMesh.push_back(currentFace);
 
@@ -461,18 +462,18 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 
 				if (triangleIntersectionCheck2(origin, dest, currentFace)) {
 
-					//int matId = face.material_id;
-					//Tucano::Material::Mtl mat = materials[matId];
-					//Eigen::Vector3f color = mat.getAmbient() + mat.getDiffuse() + mat.getSpecular();
-					//return color;
+					int matId = currentFace.material_id;
+					Tucano::Material::Mtl mat = materials[matId];
+					Eigen::Vector3f color = mat.getAmbient() + mat.getDiffuse();
+					return color;
 
-					return(Eigen::Vector3f(0.98, 0.78, 0.05));
+					//return(Eigen::Vector3f(0.98, 0.78, 0.05));
 				}
 			}
 		}
 	}
 
-	return(Eigen::Vector3f(0.0, 0.0, 0.0));
+	return(Eigen::Vector3f(1.0, 1.0, 1.0));
 }
 
 
