@@ -261,7 +261,7 @@ void Flyscene::raytraceScene(int width, int height) {
   std::cout << "ray tracing done! " << std::endl;
 }
 
-bool triangleIntersectionCheck2(vectorThree &p, vectorThree &q, const face &currentFace) {
+bool triangleIntersectionCheck2(vectorThree &p, vectorThree &q, const face &currentFace, vectorThree &uvw) {
 
 	vectorThree a = currentFace.vertex1;
 	vectorThree b = currentFace.vertex2;
@@ -272,19 +272,19 @@ bool triangleIntersectionCheck2(vectorThree &p, vectorThree &q, const face &curr
 	vectorThree pb = b - p;
 	vectorThree pc = c - p;
 
-	float u = pq.scalarTripleProduct(pc, pb);
-	if (u < 0.0) { return false; }
+	uvw.x = pq.scalarTripleProduct(pc, pb);
+	if (uvw.x < 0.0) { return false; }
 
-	float v = pq.scalarTripleProduct(pa, pc);
-	if (v < 0.0) { return false; }
+	uvw.y = pq.scalarTripleProduct(pa, pc);
+	if (uvw.y < 0.0) { return false; }
 
-	float w = pq.scalarTripleProduct(pb, pa);
-	if (w < 0.0) { return false; }
+	uvw.z = pq.scalarTripleProduct(pb, pa);
+	if (uvw.z < 0.0) { return false; }
 
-	float denom = 1.0 / (u + v + w);
-	u *= denom;
-	v *= denom;
-	w *= denom;
+	float denom = 1.0 / (uvw.x + uvw.y + uvw.z);
+	uvw.x *= denom;
+	uvw.y *= denom;
+	uvw.z *= denom;
 
 	return true;
 
@@ -453,27 +453,34 @@ bool boxIntersectionCheck(const boundingBox &box, vectorThree rayDirection, vect
 
 Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
                                    vectorThree &dest, std::vector<boundingBox> &boxes) {
-
+	vectorThree uvw, point;
+	const face *minFace = nullptr;
+	float currentDistance;
+	float minDistance = FLT_MAX;
 	for (const boundingBox &currentBox : boxes) {
 
 		if (boxIntersectionCheck2(origin, dest, currentBox)) {
 
 			for (const face &currentFace : currentBox.faces) {
 
-				if (triangleIntersectionCheck2(origin, dest, currentFace)) {
-
-					int matId = currentFace.material_id;
-					Tucano::Material::Mtl mat = materials[matId];
-					Eigen::Vector3f color = mat.getAmbient() + mat.getDiffuse();
-					return color;
-
-					//return(Eigen::Vector3f(0.98, 0.78, 0.05));
+				if (triangleIntersectionCheck2(origin, dest, currentFace, uvw)) {
+					point = (currentFace.vertex1 * uvw.x) + (currentFace.vertex2 * uvw.y) + (currentFace.vertex3 * uvw.z);
+					currentDistance = (point - origin).length();
+					if (minDistance > currentDistance && currentDistance >= 0) {
+						minDistance = currentDistance;
+						minFace = &currentFace;
+					}
 				}
 			}
 		}
 	}
-
-	return(Eigen::Vector3f(1.0, 1.0, 1.0));
+	if (minFace == nullptr) {
+		return Eigen::Vector3f(1.0, 1.0, 1.0);
+	}
+	int matId = minFace->material_id;
+	Tucano::Material::Mtl mat = materials[matId];
+	Eigen::Vector3f color = mat.getAmbient() + mat.getDiffuse();
+	return color;
 }
 
 

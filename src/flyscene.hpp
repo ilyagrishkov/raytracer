@@ -107,6 +107,16 @@ struct vectorThree {
 		return out;
 	}
 
+	vectorThree operator* (float other) const {
+		vectorThree out;
+		out.x = other * x;
+		out.y = other * y;
+		out.z = other * z;
+		return out;
+	}
+
+	
+
 	float dot(vectorThree other) {
 		float result = 0;
 		result += x * other.x;
@@ -212,7 +222,7 @@ public:
    * @return a RGB color
    */
   Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<boundingBox> &boxes);
-
+  
 private:
   // A simple phong shader for rendering meshes
   Tucano::Effects::PhongMaterial phong;
