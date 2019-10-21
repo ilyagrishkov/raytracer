@@ -15,7 +15,7 @@ void Flyscene::initialize(int width, int height) {
 
   // load the OBJ file and materials
   Tucano::MeshImporter::loadObjFile(mesh, materials,
-                                    "resources/models/dodgeColorTest.obj");
+                                    "resources/models/cube.obj");
 
 
   // normalize the model (scale to unit cube and center at origin)
@@ -375,8 +375,11 @@ Eigen::Vector3f Flyscene::traceRay(Eigen::Vector3f &origin,
 				Eigen::Vector3f vertex3 = (mesh.getVertex(face.vertex_ids[2])).head<3>();
 
 				if (triangleIntersectionCheck(rayDirection, origin, dest, vertex1, vertex2, vertex2, faceNormal)) {
-
-					return(Eigen::Vector3f(0.98, 0.78, 0.05));
+					int matId = face.material_id;
+					Tucano::Material::Mtl mat = materials[matId];
+					Eigen::Vector3f color = mat.getAmbient() + mat.getDiffuse() + mat.getSpecular();
+					return color;
+					//return(Eigen::Vector3f(0.98, 0.78, 0.05));
 
 				}
 
