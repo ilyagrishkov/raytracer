@@ -11,10 +11,14 @@
 #include <tucano/shapes/camerarep.hpp>
 #include <tucano/shapes/cylinder.hpp>
 #include <tucano/shapes/sphere.hpp>
+#include <tucano/shapes/box.hpp>
 #include <tucano/utils/flycamera.hpp>
 #include <tucano/utils/imageIO.hpp>
 #include <tucano/utils/mtlIO.hpp>
 #include <tucano/utils/objimporter.hpp>
+#include <vector>
+#include <boundingbox.hpp>
+#include <boundingsphere.hpp>
 
 class Flyscene {
 
@@ -68,6 +72,9 @@ public:
    * @return a RGB color
    */
   Eigen::Vector3f traceRay(Eigen::Vector3f &origin, Eigen::Vector3f &dest);
+
+
+
 
 private:
   // A simple phong shader for rendering meshes

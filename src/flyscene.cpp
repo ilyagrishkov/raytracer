@@ -1,6 +1,8 @@
 #include "flyscene.hpp"
 #include <GLFW/glfw3.h>
 
+
+
 void Flyscene::initialize(int width, int height) {
   // initiliaze the Phong Shading effect for the Opengl Previewer
   phong.initialize();
@@ -12,7 +14,6 @@ void Flyscene::initialize(int width, int height) {
   // load the OBJ file and materials
   Tucano::MeshImporter::loadObjFile(mesh, materials,
                                     "resources/models/dodgeColorTest.obj");
-
 
   // normalize the model (scale to unit cube and center at origin)
   mesh.normalizeModelMatrix();
@@ -53,9 +54,10 @@ void Flyscene::initialize(int width, int height) {
   //   std::cout<<"face   normal "<<face.normal.transpose() << std::endl << std::endl;
   // }
 
-
-
+  
 }
+
+
 
 void Flyscene::paintGL(void) {
 
@@ -119,9 +121,20 @@ void Flyscene::createDebugRay(const Eigen::Vector2f &mouse_pos) {
   // position and orient the cylinder representing the ray
   ray.setOriginOrientation(flycamera.getCenter(), dir);
 
+
+  Eigen::Vector3f origin = flycamera.getCenter();
   // place the camera representation (frustum) on current camera location, 
   camerarep.resetModelMatrix();
   camerarep.setModelMatrix(flycamera.getViewMatrix().inverse());
+  std::vector<BoundingBox> boxes = BoundingBox::createBoundingBoxes(mesh);
+
+  for (BoundingBox &currentBox : boxes){
+
+    if(currentBox.intersection(origin, dir)){
+      std::cout << "Intersection!!"<< std::endl;
+    }
+  } 
+  
 }
 
 void Flyscene::raytraceScene(int width, int height) {
@@ -163,6 +176,7 @@ Eigen::Vector3f Flyscene::traceRay(Eigen::Vector3f &origin,
                                    Eigen::Vector3f &dest) {
   // just some fake random color per pixel until you implement your ray tracing
   // remember to return your RGB values as floats in the range [0, 1]!!!
+
   return Eigen::Vector3f(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX,
                          rand() / (float)RAND_MAX);
 }
