@@ -16,26 +16,7 @@
 #include <tucano/utils/mtlIO.hpp>
 #include <tucano/utils/objimporter.hpp>
 
-struct boundingBox {
-	float xMax;
-	float xMin;
-	float yMax;
-	float yMin;
-	float zMax;
-	float zMin;
-	std::vector<boundingBox> children;
-	std::vector<Tucano::Face> faces;
 
-	boundingBox() {
-		xMax = -FLT_MAX;
-		xMin = FLT_MAX;
-		yMax = -FLT_MAX;
-		yMin = FLT_MAX;
-		zMax = -FLT_MAX;
-		zMin = FLT_MAX;
-	}
-
-};
 
 struct vectorTwo {
 	float x;
@@ -126,8 +107,55 @@ struct vectorThree {
 		return out;
 	}
 
+	float dot(vectorThree other) {
+		float result = 0;
+		result += x * other.x;
+		result += y * other.y;
+		result += z * other.z;
+		return result;
+	}
+
+	vectorThree cross(vectorThree other) {
+		vectorThree result;
+		result.x = (y * other.z) - (z * other.y);
+		result.y = (z * other.x) - (x * other.z);
+		result.z = (x * other.y) - (y * other.x);
+		return result;
+	}
+
+	float scalarTripleProduct(vectorThree v, vectorThree w) {
+		return cross(v).dot(w);
+	}
+
 	float length() {
 		return sqrt(x * x + y * y + z * z);
+	}
+};
+
+struct face {
+	vectorThree vertex1;
+	vectorThree vertex2;
+	vectorThree vertex3;
+	vectorThree normal;
+};
+
+struct boundingBox {
+	float xMax;
+	float xMin;
+	float yMax;
+	float yMin;
+	float zMax;
+	float zMin;
+	std::vector<boundingBox> children;
+	std::vector<face> faces;
+
+	boundingBox() {
+		xMax = -FLT_MAX;
+		xMin = FLT_MAX;
+		yMax = -FLT_MAX;
+		yMin = FLT_MAX;
+		zMax = -FLT_MAX;
+		zMin = FLT_MAX;
 	}
 };
 
@@ -182,7 +210,7 @@ public:
    * @param dest Other point on the ray, usually screen coordinates
    * @return a RGB color
    */
-  Eigen::Vector3f traceRay(Eigen::Vector3f &origin, Eigen::Vector3f &dest, std::vector<boundingBox> &boxes);
+  Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<boundingBox> &boxes);
 
 private:
   // A simple phong shader for rendering meshes
