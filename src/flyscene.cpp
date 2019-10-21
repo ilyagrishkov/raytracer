@@ -148,11 +148,36 @@ void Flyscene::raytraceScene(int width, int height) {
 
   // origin of the ray is always the camera center
   Eigen::Vector3f origin = flycamera.getCenter();
+  origin[2] = -2;
   Eigen::Vector3f screen_coords;
 
-
+  vectorThree myOrigin = { origin[0], origin[1], origin[2] };
 
  //for every pixel shoot a ray from the origin through the pixel coords
+
+  std::vector<face> myMesh;
+
+
+  for (int i = 0; i < mesh.getNumberOfFaces(); i++) {
+
+	  Tucano::Face oldFace = mesh.getFace(i);
+
+	  Eigen::Vector3f vertex1 = (mesh.getVertex(oldFace.vertex_ids[0])).head<3>();
+	  Eigen::Vector3f vertex2 = (mesh.getVertex(oldFace.vertex_ids[1])).head<3>();
+	  Eigen::Vector3f vertex3 = (mesh.getVertex(oldFace.vertex_ids[2])).head<3>();
+
+	  Eigen::Vector3f normal = oldFace.normal;
+
+	  face currentFace{
+	  {vertex1[0], vertex1[1], vertex1[2]},
+	  {vertex2[0], vertex2[1], vertex2[2]},
+	  {vertex3[0], vertex3[1], vertex3[2]},
+	  {normal[0], normal[1], normal[2]} };
+
+	  myMesh.push_back(currentFace);
+
+  }
+
 
   std::vector<boundingBox> boxes;
 
@@ -160,41 +185,41 @@ void Flyscene::raytraceScene(int width, int height) {
 
   int faceNum = 100;
 
-  for (int i = 0; i < mesh.getNumberOfFaces(); i++) {
+  for (int i = 0; i < myMesh.size(); i++) {
 
-	  Tucano::Face face = mesh.getFace(i);
+	  face currentFace = myMesh[i];
 
-	  Eigen::Vector3f vertex1 = (mesh.getVertex(face.vertex_ids[0])).head<3>();
-	  Eigen::Vector3f vertex2 = (mesh.getVertex(face.vertex_ids[1])).head<3>();
-	  Eigen::Vector3f vertex3 = (mesh.getVertex(face.vertex_ids[2])).head<3>();
+	  vectorThree vertex1 = currentFace.vertex1;
+	  vectorThree vertex2 = currentFace.vertex2;
+	  vectorThree vertex3 = currentFace.vertex3;
 
-	  currentBox.xMax = std::max(currentBox.xMax, vertex1[0]);
-	  currentBox.xMax = std::max(currentBox.xMax, vertex2[0]);
-	  currentBox.xMax = std::max(currentBox.xMax, vertex3[0]);
+	  currentBox.xMax = std::max(currentBox.xMax, vertex1.x);
+	  currentBox.xMax = std::max(currentBox.xMax, vertex2.x);
+	  currentBox.xMax = std::max(currentBox.xMax, vertex3.x);
 
-	  currentBox.xMin = std::min(currentBox.xMin, vertex1[0]);
-	  currentBox.xMin = std::min(currentBox.xMin, vertex2[0]);
-	  currentBox.xMin = std::min(currentBox.xMin, vertex3[0]);
+	  currentBox.xMin = std::min(currentBox.xMin, vertex1.x);
+	  currentBox.xMin = std::min(currentBox.xMin, vertex2.x);
+	  currentBox.xMin = std::min(currentBox.xMin, vertex3.x);
 
-	  currentBox.yMax = std::max(currentBox.yMax, vertex1[1]);
-	  currentBox.yMax = std::max(currentBox.yMax, vertex2[1]);
-	  currentBox.yMax = std::max(currentBox.yMax, vertex3[1]);
+	  currentBox.yMax = std::max(currentBox.yMax, vertex1.y);
+	  currentBox.yMax = std::max(currentBox.yMax, vertex2.y);
+	  currentBox.yMax = std::max(currentBox.yMax, vertex3.y);
 
-	  currentBox.yMin = std::min(currentBox.yMin, vertex1[1]);
-	  currentBox.yMin = std::min(currentBox.yMin, vertex2[1]);
-	  currentBox.yMin = std::min(currentBox.yMin, vertex3[1]);
+	  currentBox.yMin = std::min(currentBox.yMin, vertex1.y);
+	  currentBox.yMin = std::min(currentBox.yMin, vertex2.y);
+	  currentBox.yMin = std::min(currentBox.yMin, vertex3.y);
 
-	  currentBox.zMax = std::max(currentBox.zMax, vertex1[2]);
-	  currentBox.zMax = std::max(currentBox.zMax, vertex2[2]);
-	  currentBox.zMax = std::max(currentBox.zMax, vertex3[2]);
+	  currentBox.zMax = std::max(currentBox.zMax, vertex1.z);
+	  currentBox.zMax = std::max(currentBox.zMax, vertex2.z);
+	  currentBox.zMax = std::max(currentBox.zMax, vertex3.z);
 
-	  currentBox.zMin = std::min(currentBox.zMin, vertex1[2]);
-	  currentBox.zMin = std::min(currentBox.zMin, vertex2[2]);
-	  currentBox.zMin = std::min(currentBox.zMin, vertex3[2]);
+	  currentBox.zMin = std::min(currentBox.zMin, vertex1.z);
+	  currentBox.zMin = std::min(currentBox.zMin, vertex2.z);
+	  currentBox.zMin = std::min(currentBox.zMin, vertex3.z);
 
-	  currentBox.faces.push_back(face);
+	  currentBox.faces.push_back(currentFace);
 
-	  if (i % faceNum == faceNum-1 || i == mesh.getNumberOfFaces()-1) {
+	  if (i % faceNum == faceNum-1 || i == myMesh.size()-1) {
 
 		  //std::cout << currentBox.faces.size() << "number of faces" << std::endl;
 
@@ -214,19 +239,54 @@ void Flyscene::raytraceScene(int width, int height) {
 	  std::cout << j << std::endl;
 
     for (int i = 0; i < image_size[0]; ++i) {
-		
-	
 
-      // create a ray from the camera passing through the pixel (i,j)
-     screen_coords = flycamera.screenToWorld(Eigen::Vector2f(i, j));
-      // launch raytracing for the given ray and write result to pixel data
-      pixel_data[i][j] = traceRay(origin, screen_coords, boxes);
+		vectorThree myScreen_coords;
+
+		#pragma omp critical
+		{
+
+			screen_coords = flycamera.screenToWorld(Eigen::Vector2f(i, j));
+			myScreen_coords = { screen_coords[0], screen_coords[1], screen_coords[2] };
+
+		}
+
+		pixel_data[i][j] = traceRay(myOrigin, myScreen_coords, boxes);
+		
     }
   }
 
   // write the ray tracing result to a PPM image
   Tucano::ImageImporter::writePPMImage("result.ppm", pixel_data);
   std::cout << "ray tracing done! " << std::endl;
+}
+
+bool triangleIntersectionCheck2(vectorThree &p, vectorThree &q, const face &currentFace) {
+
+	vectorThree a = currentFace.vertex1;
+	vectorThree b = currentFace.vertex2;
+	vectorThree c = currentFace.vertex3;
+
+	vectorThree pq = q - p;
+	vectorThree pa = a - p;
+	vectorThree pb = b - p;
+	vectorThree pc = c - p;
+
+	float u = pq.scalarTripleProduct(pc, pb);
+	if (u < 0.0) { return false; }
+
+	float v = pq.scalarTripleProduct(pa, pc);
+	if (v < 0.0) { return false; }
+
+	float w = pq.scalarTripleProduct(pb, pa);
+	if (w < 0.0) { return false; }
+
+	float denom = 1.0 / (u + v + w);
+	u *= denom;
+	v *= denom;
+	w *= denom;
+
+	return true;
+
 }
 
 bool triangleIntersectionCheck(Eigen::Vector3f rayDirection, Eigen::Vector3f& origin, Eigen::Vector3f& dest, Eigen::Vector3f& vertex1, Eigen::Vector3f& vertex2, Eigen::Vector3f& vertex3, Eigen::Vector3f& faceNormal) {
@@ -282,6 +342,42 @@ bool triangleIntersectionCheck(Eigen::Vector3f rayDirection, Eigen::Vector3f& or
 
 		return false;
 	}
+
+	return true;
+
+}
+
+bool boxIntersectionCheck2(vectorThree &origin, vectorThree &dest, const boundingBox &box) {
+
+	vectorThree max = { box.xMax, box.yMax, box.zMax };
+	vectorThree min = { box.xMin, box.yMin, box.zMin };
+
+	vectorThree e = max - min;
+	vectorThree d = dest - origin;
+	vectorThree m = origin + dest - min - max;
+
+	float adx = abs(d.x);
+	if (abs(m.x) > e.x + adx) {
+		return false;
+	}
+
+	float ady = abs(d.y);
+	if (abs(m.y) > e.y + ady) {
+		return false;
+	}
+
+	float adz = abs(d.z);
+	if (abs(m.z) > e.z + adz) {
+		return false;
+	}
+
+	adx += FLT_EPSILON;
+	ady += FLT_EPSILON;
+	adz += FLT_EPSILON;
+
+	if (abs(m.y * d.z - m.z * d.y) > e.y * adz + e.z * ady) { return false; }
+	if (abs(m.z * d.x - m.x * d.z) > e.x * adz + e.z * adx) { return false; }
+	if (abs(m.x * d.y - m.y * d.x) > e.x * ady + e.y * adx) { return false; }
 
 	return true;
 
@@ -354,42 +450,26 @@ bool boxIntersectionCheck(const boundingBox &box, vectorThree rayDirection, vect
 
 }
 
-Eigen::Vector3f Flyscene::traceRay(Eigen::Vector3f &origin,
-                                   Eigen::Vector3f &dest, std::vector<boundingBox> &boxes) {
-
-	//std::cout << dest.x << std::endl;
-
-	Eigen::Vector3f rayDirection = dest - origin;
-
-	vectorThree ray = { rayDirection[0], rayDirection[1], rayDirection[2] };
-	vectorThree myRayDirection = ray / ray.length();
-	vectorThree myOrigin = { origin[0], origin[1], origin[2] };
+Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
+                                   vectorThree &dest, std::vector<boundingBox> &boxes) {
 
 	for (const boundingBox &currentBox : boxes) {
 
-		if (boxIntersectionCheck(currentBox, myRayDirection, ray, myOrigin)) {
+		if (boxIntersectionCheck2(origin, dest, currentBox)) {
 
-			for (const Tucano::Face &face : currentBox.faces) {
+			for (const face &currentFace : currentBox.faces) {
 
-				Eigen::Vector3f faceNormal = face.normal;
+				if (triangleIntersectionCheck2(origin, dest, currentFace)) {
 
-				Eigen::Vector3f vertex1 = (mesh.getVertex(face.vertex_ids[0])).head<3>();
-				Eigen::Vector3f vertex2 = (mesh.getVertex(face.vertex_ids[1])).head<3>();
-				Eigen::Vector3f vertex3 = (mesh.getVertex(face.vertex_ids[2])).head<3>();
+					//int matId = face.material_id;
+					//Tucano::Material::Mtl mat = materials[matId];
+					//Eigen::Vector3f color = mat.getAmbient() + mat.getDiffuse() + mat.getSpecular();
+					//return color;
 
-				if (triangleIntersectionCheck(rayDirection, origin, dest, vertex1, vertex2, vertex2, faceNormal)) {
-					int matId = face.material_id;
-					Tucano::Material::Mtl mat = materials[matId];
-					Eigen::Vector3f color = mat.getAmbient() + mat.getDiffuse() + mat.getSpecular();
-					return color;
-					//return(Eigen::Vector3f(0.98, 0.78, 0.05));
-
+					return(Eigen::Vector3f(0.98, 0.78, 0.05));
 				}
-
 			}
-
 		}
-
 	}
 
 	return(Eigen::Vector3f(0.0, 0.0, 0.0));
