@@ -17,6 +17,7 @@
 #include <tucano/utils/objimporter.hpp>
 
 
+static float RAYLENGTH = 10.0;
 
 struct vectorTwo {
 	float x;
@@ -222,7 +223,7 @@ public:
    * @param dest Other point on the ray, usually screen coordinates
    * @return a RGB color
    */
-  Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<boundingBox> &boxes);
+  Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<boundingBox> &boxes, float &lengthRay=RAYLENGTH);
   
 private:
   // A simple phong shader for rendering meshes
