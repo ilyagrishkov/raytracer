@@ -11,7 +11,10 @@ raytracing.vcxproj
 raytracing.vcxproj.filters
 raytracing.vcxproj.user
 
+raytracing.tlog
+Debug/
+/result.ppm
+
 # Mac files and folders
 
 .DS_Store
-
