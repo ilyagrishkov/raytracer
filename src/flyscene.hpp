@@ -140,6 +140,7 @@ struct vectorThree {
 	float length() {
 		return sqrt(x * x + y * y + z * z);
 	}
+
 };
 
 struct face {

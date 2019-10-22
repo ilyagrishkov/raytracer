@@ -115,20 +115,111 @@ void Flyscene::simulate(GLFWwindow *window) {
   flycamera.translate(dx, dy, dz);
 }
 
-void Flyscene::createDebugRay(const Eigen::Vector2f &mouse_pos) {
-  ray.resetModelMatrix();
-  // from pixel position to world coordinates
-  Eigen::Vector3f screen_pos = flycamera.screenToWorld(mouse_pos);
+std::vector<face> getMesh(Tucano::Mesh mesh) {
+	std::vector<face> myMesh;
 
-  // direction from camera center to click position
-  Eigen::Vector3f dir = (screen_pos - flycamera.getCenter()).normalized();
-  
-  // position and orient the cylinder representing the ray
-  ray.setOriginOrientation(flycamera.getCenter(), dir);
 
-  // place the camera representation (frustum) on current camera location, 
-  camerarep.resetModelMatrix();
-  camerarep.setModelMatrix(flycamera.getViewMatrix().inverse());
+	for (int i = 0; i < mesh.getNumberOfFaces(); i++) {
+
+		Tucano::Face oldFace = mesh.getFace(i);
+
+		Eigen::Vector3f vertex1 = (mesh.getVertex(oldFace.vertex_ids[0])).head<3>();
+		Eigen::Vector3f vertex2 = (mesh.getVertex(oldFace.vertex_ids[1])).head<3>();
+		Eigen::Vector3f vertex3 = (mesh.getVertex(oldFace.vertex_ids[2])).head<3>();
+
+		Eigen::Vector3f normal = oldFace.normal;
+
+		face currentFace{
+		{vertex1[0], vertex1[1], vertex1[2]},
+		{vertex2[0], vertex2[1], vertex2[2]},
+		{vertex3[0], vertex3[1], vertex3[2]},
+		{normal[0], normal[1], normal[2]},
+		oldFace.material_id };
+
+		myMesh.push_back(currentFace);
+
+	}
+	return myMesh;
+}
+
+std::vector<boundingBox> getBoxes(std::vector<face> mesh) {
+	std::vector<boundingBox> boxes;
+
+	boundingBox currentBox;
+
+	int faceNum = 100;
+
+	for (int i = 0; i < mesh.size(); i++) {
+
+		face currentFace = mesh[i];
+
+		vectorThree vertex1 = currentFace.vertex1;
+		vectorThree vertex2 = currentFace.vertex2;
+		vectorThree vertex3 = currentFace.vertex3;
+
+		currentBox.xMax = std::max(currentBox.xMax, vertex1.x);
+		currentBox.xMax = std::max(currentBox.xMax, vertex2.x);
+		currentBox.xMax = std::max(currentBox.xMax, vertex3.x);
+
+		currentBox.xMin = std::min(currentBox.xMin, vertex1.x);
+		currentBox.xMin = std::min(currentBox.xMin, vertex2.x);
+		currentBox.xMin = std::min(currentBox.xMin, vertex3.x);
+
+		currentBox.yMax = std::max(currentBox.yMax, vertex1.y);
+		currentBox.yMax = std::max(currentBox.yMax, vertex2.y);
+		currentBox.yMax = std::max(currentBox.yMax, vertex3.y);
+
+		currentBox.yMin = std::min(currentBox.yMin, vertex1.y);
+		currentBox.yMin = std::min(currentBox.yMin, vertex2.y);
+		currentBox.yMin = std::min(currentBox.yMin, vertex3.y);
+
+		currentBox.zMax = std::max(currentBox.zMax, vertex1.z);
+		currentBox.zMax = std::max(currentBox.zMax, vertex2.z);
+		currentBox.zMax = std::max(currentBox.zMax, vertex3.z);
+
+		currentBox.zMin = std::min(currentBox.zMin, vertex1.z);
+		currentBox.zMin = std::min(currentBox.zMin, vertex2.z);
+		currentBox.zMin = std::min(currentBox.zMin, vertex3.z);
+
+		currentBox.faces.push_back(currentFace);
+
+		if (i % faceNum == faceNum - 1 || i == mesh.size() - 1) {
+
+			//std::cout << currentBox.faces.size() << "number of faces" << std::endl;
+
+			boxes.push_back(currentBox);
+			currentBox = boundingBox();
+
+		}
+	}
+	return boxes;
+}
+
+void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
+	ray.resetModelMatrix();
+	// from pixel position to world coordinates
+	Eigen::Vector3f screen_pos = flycamera.screenToWorld(mouse_pos);
+
+	// direction from camera center to click position
+	Eigen::Vector3f dir = (screen_pos - flycamera.getCenter()).normalized();
+
+	// position and orient the cylinder representing the ray
+	ray.setOriginOrientation(flycamera.getCenter(), dir);
+
+	Eigen::Vector3f origin = flycamera.getCenter();
+	vectorThree myOrigin = { origin[0], origin[1], origin[2] };
+
+	std::vector<boundingBox> boxes = getBoxes(getMesh(mesh));
+
+	vectorThree myDestination = { screen_pos[0], screen_pos[1], screen_pos[2] };
+
+	Eigen::Vector3f colorPoint = traceRay(myOrigin, myDestination, boxes);
+	std::cout << "color: " << colorPoint << std::endl;
+
+	// place the camera representation (frustum) on current camera location, 
+	camerarep.resetModelMatrix();
+	camerarep.setModelMatrix(flycamera.getViewMatrix().inverse());
+
 }
 
 void Flyscene::raytraceScene(int width, int height) {
@@ -155,86 +246,13 @@ void Flyscene::raytraceScene(int width, int height) {
 
  //for every pixel shoot a ray from the origin through the pixel coords
 
-  std::vector<face> myMesh;
-
-
-  for (int i = 0; i < mesh.getNumberOfFaces(); i++) {
-
-	  Tucano::Face oldFace = mesh.getFace(i);
-
-	  Eigen::Vector3f vertex1 = (mesh.getVertex(oldFace.vertex_ids[0])).head<3>();
-	  Eigen::Vector3f vertex2 = (mesh.getVertex(oldFace.vertex_ids[1])).head<3>();
-	  Eigen::Vector3f vertex3 = (mesh.getVertex(oldFace.vertex_ids[2])).head<3>();
-
-	  Eigen::Vector3f normal = oldFace.normal;
-
-	  face currentFace{
-	  {vertex1[0], vertex1[1], vertex1[2]},
-	  {vertex2[0], vertex2[1], vertex2[2]},
-	  {vertex3[0], vertex3[1], vertex3[2]},
-	  {normal[0], normal[1], normal[2]},
-	  oldFace.material_id};
-
-	  myMesh.push_back(currentFace);
-
-  }
-
-
-  std::vector<boundingBox> boxes;
-
-  boundingBox currentBox;
-
-  int faceNum = 100;
-
-  for (int i = 0; i < myMesh.size(); i++) {
-
-	  face currentFace = myMesh[i];
-
-	  vectorThree vertex1 = currentFace.vertex1;
-	  vectorThree vertex2 = currentFace.vertex2;
-	  vectorThree vertex3 = currentFace.vertex3;
-
-	  currentBox.xMax = std::max(currentBox.xMax, vertex1.x);
-	  currentBox.xMax = std::max(currentBox.xMax, vertex2.x);
-	  currentBox.xMax = std::max(currentBox.xMax, vertex3.x);
-
-	  currentBox.xMin = std::min(currentBox.xMin, vertex1.x);
-	  currentBox.xMin = std::min(currentBox.xMin, vertex2.x);
-	  currentBox.xMin = std::min(currentBox.xMin, vertex3.x);
-
-	  currentBox.yMax = std::max(currentBox.yMax, vertex1.y);
-	  currentBox.yMax = std::max(currentBox.yMax, vertex2.y);
-	  currentBox.yMax = std::max(currentBox.yMax, vertex3.y);
-
-	  currentBox.yMin = std::min(currentBox.yMin, vertex1.y);
-	  currentBox.yMin = std::min(currentBox.yMin, vertex2.y);
-	  currentBox.yMin = std::min(currentBox.yMin, vertex3.y);
-
-	  currentBox.zMax = std::max(currentBox.zMax, vertex1.z);
-	  currentBox.zMax = std::max(currentBox.zMax, vertex2.z);
-	  currentBox.zMax = std::max(currentBox.zMax, vertex3.z);
-
-	  currentBox.zMin = std::min(currentBox.zMin, vertex1.z);
-	  currentBox.zMin = std::min(currentBox.zMin, vertex2.z);
-	  currentBox.zMin = std::min(currentBox.zMin, vertex3.z);
-
-	  currentBox.faces.push_back(currentFace);
-
-	  if (i % faceNum == faceNum-1 || i == myMesh.size()-1) {
-
-		  //std::cout << currentBox.faces.size() << "number of faces" << std::endl;
-
-		  boxes.push_back(currentBox);
-		  currentBox = boundingBox();
-
-	  }
-
-  }
-
+  std::vector<face> myMesh = getMesh(mesh);
+  std::vector<boundingBox> boxes = getBoxes(myMesh);
 
 
 #pragma omp parallel for schedule(dynamic, 1) num_threads(10)
 
+  //Traces ray for every pixel on the screen in parallel
   for (int j = 0; j < image_size[1]; ++j) {
 
 	  std::cout << j << std::endl;
@@ -261,6 +279,7 @@ void Flyscene::raytraceScene(int width, int height) {
   std::cout << "ray tracing done! " << std::endl;
 }
 
+//Checks if 
 bool triangleIntersectionCheck2(vectorThree &p, vectorThree &q, const face &currentFace, vectorThree &uvw) {
 
 	vectorThree a = currentFace.vertex1;
@@ -347,6 +366,7 @@ bool triangleIntersectionCheck(Eigen::Vector3f rayDirection, Eigen::Vector3f& or
 	return true;
 
 }
+
 
 bool boxIntersectionCheck2(vectorThree &origin, vectorThree &dest, const boundingBox &box) {
 
@@ -451,21 +471,26 @@ bool boxIntersectionCheck(const boundingBox &box, vectorThree rayDirection, vect
 
 }
 
+// Traces ray
 Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
                                    vectorThree &dest, std::vector<boundingBox> &boxes) {
 	vectorThree uvw, point;
 	const face *minFace = nullptr;
 	float currentDistance;
 	float minDistance = FLT_MAX;
+	//Loops through all boxes
 	for (const boundingBox &currentBox : boxes) {
-
+		//If ray hits a box
 		if (boxIntersectionCheck2(origin, dest, currentBox)) {
-
+			//Then it loops through all faces of that box
 			for (const face &currentFace : currentBox.faces) {
-
+				//If it hits a face in that box
 				if (triangleIntersectionCheck2(origin, dest, currentFace, uvw)) {
+					//This is the point it hits the triangle
 					point = (currentFace.vertex1 * uvw.x) + (currentFace.vertex2 * uvw.y) + (currentFace.vertex3 * uvw.z);
+
 					currentDistance = (point - origin).length();
+					//Calculates closest triangle
 					if (minDistance > currentDistance && currentDistance >= 0) {
 						minDistance = currentDistance;
 						minFace = &currentFace;
@@ -474,9 +499,12 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 			}
 		}
 	}
+
+	//In case ray hits nothing
 	if (minFace == nullptr) {
 		return Eigen::Vector3f(1.0, 1.0, 1.0);
 	}
+
 	int matId = minFace->material_id;
 	Tucano::Material::Mtl mat = materials[matId];
 	Eigen::Vector3f color = mat.getAmbient() + mat.getDiffuse();
