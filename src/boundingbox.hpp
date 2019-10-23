@@ -175,7 +175,7 @@ public:
 
 	bool intersection(vectorThree&, vectorThree&);
 
-	static std::vector<BoundingBox> createBoundingBoxes(std::vector<face> &objectMesh);
+	static std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh &mesh);
 };
 
 #endif
