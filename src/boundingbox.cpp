@@ -13,7 +13,6 @@ std::vector<BoundingBox> BoundingBox::createBoundingBoxes(Tucano::Mesh &mesh) {
 
   std::vector<face> myMesh;
 
-
   for (int i = 0; i < mesh.getNumberOfFaces(); i++) {
 
     Tucano::Face oldFace = mesh.getFace(i);
@@ -37,13 +36,37 @@ std::vector<BoundingBox> BoundingBox::createBoundingBoxes(Tucano::Mesh &mesh) {
 
   std::vector<BoundingBox> boxes;
 
+  BoundingBox currentBox = createBox(myMesh);
+  splitBox(currentBox, 100);
+
+  boxes.push_back(currentBox);
+ 
+  return boxes;
+}
+
+void BoundingBox::printNodes(BoundingBox &currentBox) {
+
+  //std::cout << currentBox.xMin << " " <<  currentBox.xMin << " " << currentBox.yMin << " " << currentBox.yMax << " " << currentBox.zMin << " " << currentBox.zMax << " FACES: " << currentBox.getFaces().size() << std::endl;
+  
+  if(currentBox.children.size() == 0) {
+    std::cout << currentBox.xMin << " " <<  currentBox.xMin << " " << currentBox.yMin << " " << currentBox.yMax << " " << currentBox.zMin << " " << currentBox.zMax << " FACES: " << currentBox.getFaces().size() << std::endl;
+  
+  }
+  for (BoundingBox &box : currentBox.children) {
+
+    std::cout << "==";
+    printNodes(box);
+  }
+
+}
+
+BoundingBox BoundingBox::createBox(const std::vector<face> &mesh) {
+
   BoundingBox currentBox;
 
-  int faceNum = 100;
+  for (int i = 0; i < mesh.size(); i++) {
 
-  for (int i = 0; i < myMesh.size(); i++) {
-
-    face currentFace = myMesh[i];
+    face currentFace = mesh[i];
 
     vectorThree vertex1 = currentFace.vertex1;
     vectorThree vertex2 = currentFace.vertex2;
@@ -74,21 +97,40 @@ std::vector<BoundingBox> BoundingBox::createBoundingBoxes(Tucano::Mesh &mesh) {
     currentBox.zMin = std::min(currentBox.zMin, vertex3.z);
 
     currentBox.faces.push_back(currentFace);
-
-    if (i % faceNum == faceNum - 1 || i == myMesh.size() - 1) {
-
-      //std::cout << currentBox.faces.size() << "number of faces" << std::endl;
-
-      boxes.push_back(currentBox);
-      currentBox = BoundingBox();
-
-    }
   }
-  return boxes;
+
+  //std::cout << currentBox.xMin << " " <<  currentBox.xMin << " " << currentBox.yMin << " " << currentBox.yMax << " " << currentBox.zMin << " " << currentBox.zMax << std::endl;
+  return currentBox;
+}
+
+
+BoundingBox BoundingBox::splitBox(BoundingBox &rootBox, int faceNum) {
+
+  std::vector<face> faces = rootBox.getFaces();
+  if(faces.size() > faceNum) {
+
+    std::size_t const half_size = faces.size() / 2;
+    
+    std::vector<face> split_lo(faces.begin(), faces.begin() + half_size);
+    std::vector<face> split_hi(faces.begin() + half_size, faces.end());
+
+    BoundingBox lo_box = createBox(split_lo);
+    BoundingBox hi_box = createBox(split_hi);
+
+    BoundingBox lo_box_split = splitBox(lo_box, faceNum);
+    BoundingBox hi_box_split = splitBox(hi_box, faceNum);
+
+    rootBox.addChild(lo_box_split);
+    rootBox.addChild(hi_box_split);
+
+  }
+
+  return rootBox;
 }
 
 bool BoundingBox::intersection(vectorThree &origin, vectorThree &dest) { 
 
+  rayBoxChecks++;
   vectorThree max = { xMax, yMax, zMax };
   vectorThree min = { xMin, yMin, zMin };
 
@@ -119,5 +161,21 @@ bool BoundingBox::intersection(vectorThree &origin, vectorThree &dest) {
   if (abs(m.z * d.x - m.x * d.z) > e.x * adz + e.z * adx) { return false; }
   if (abs(m.x * d.y - m.y * d.x) > e.x * ady + e.y * adx) { return false; }
 
+  rayBoxIntersections++;
   return true;
+}
+
+void BoundingBox::intersectingChildren(BoundingBox &currentBox, vectorThree &origin, vectorThree &dest, vector<face> &checkFaces) {
+
+  for(BoundingBox &child : currentBox.children) {
+
+    if(child.intersection(origin, dest)) {
+      BoundingBox::intersectingChildren(child, origin, dest, checkFaces);
+    }
+  }
+
+  if(currentBox.children.size() == 0) {
+
+    checkFaces.insert(checkFaces.end(), currentBox.faces.begin(), currentBox.faces.end());
+  }
 }

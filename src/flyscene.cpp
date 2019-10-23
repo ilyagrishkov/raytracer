@@ -266,11 +266,11 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 	//Loops through all boxes
 	for (BoundingBox &currentBox : boxes) {
 		//If ray hits a box
-		rayBoxChecks++;
 		if (currentBox.intersection(origin, dest)) {
-			rayBoxIntersections++;
+			std::vector<face> checkFaces; 
+			BoundingBox::intersectingChildren(currentBox, origin, dest, checkFaces);
 			//Then it loops through all faces of that box
-			for (const face &currentFace : currentBox.faces) {
+			for (const face &currentFace : checkFaces) {
 				//If it hits a face in that box
 				if (triangleIntersectionCheck2(origin, dest, currentFace, uvw)) {
 					//This is the point it hits the triangle
