@@ -9,7 +9,31 @@ BoundingBox::BoundingBox(void) {
   zMin = FLT_MAX;
 }
 
-std::vector<BoundingBox> BoundingBox::createBoundingBoxes(std::vector<face> &mesh) {
+std::vector<BoundingBox> BoundingBox::createBoundingBoxes(Tucano::Mesh &mesh) {
+
+  std::vector<face> myMesh;
+
+
+  for (int i = 0; i < mesh.getNumberOfFaces(); i++) {
+
+    Tucano::Face oldFace = mesh.getFace(i);
+
+    Eigen::Vector3f vertex1 = (mesh.getVertex(oldFace.vertex_ids[0])).head<3>();
+    Eigen::Vector3f vertex2 = (mesh.getVertex(oldFace.vertex_ids[1])).head<3>();
+    Eigen::Vector3f vertex3 = (mesh.getVertex(oldFace.vertex_ids[2])).head<3>();
+
+    Eigen::Vector3f normal = oldFace.normal;
+
+    face currentFace{
+    {vertex1[0], vertex1[1], vertex1[2]},
+    {vertex2[0], vertex2[1], vertex2[2]},
+    {vertex3[0], vertex3[1], vertex3[2]},
+    {normal[0], normal[1], normal[2]},
+    oldFace.material_id };
+
+    myMesh.push_back(currentFace);
+
+  }
 
   std::vector<BoundingBox> boxes;
 
@@ -17,9 +41,9 @@ std::vector<BoundingBox> BoundingBox::createBoundingBoxes(std::vector<face> &mes
 
   int faceNum = 100;
 
-  for (int i = 0; i < mesh.size(); i++) {
+  for (int i = 0; i < myMesh.size(); i++) {
 
-    face currentFace = mesh[i];
+    face currentFace = myMesh[i];
 
     vectorThree vertex1 = currentFace.vertex1;
     vectorThree vertex2 = currentFace.vertex2;
@@ -51,7 +75,7 @@ std::vector<BoundingBox> BoundingBox::createBoundingBoxes(std::vector<face> &mes
 
     currentBox.faces.push_back(currentFace);
 
-    if (i % faceNum == faceNum - 1 || i == mesh.size() - 1) {
+    if (i % faceNum == faceNum - 1 || i == myMesh.size() - 1) {
 
       //std::cout << currentBox.faces.size() << "number of faces" << std::endl;
 

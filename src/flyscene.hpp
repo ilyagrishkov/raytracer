@@ -18,9 +18,16 @@
 #include <float.h>
 #include <boundingbox.hpp>
 
+static int rayTriangleChecks = 0;
+static int rayBoxChecks = 0;
+static int rayTriangleIntersections = 0;
+static int rayBoxIntersections = 0;
+
 class Flyscene {
 
 public:
+
+
   Flyscene(void) {}
 
   /**

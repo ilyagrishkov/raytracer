@@ -111,6 +111,7 @@ void Flyscene::simulate(GLFWwindow *window) {
   flycamera.translate(dx, dy, dz);
 }
 
+<<<<<<< HEAD
 std::vector<face> getMesh(Tucano::Mesh mesh) {
 	std::vector<face> myMesh;
 
@@ -190,6 +191,8 @@ std::vector<BoundingBox> getBoxes(std::vector<face> mesh) {
 	}
 	return boxes;
 }
+=======
+>>>>>>> Added progress bar and statistics
 
 void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
 	float rayLength = RAYLENGTH;
@@ -207,7 +210,7 @@ void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
 	vectorThree myOrigin = vectorThree::toVectorThree(flycamera.getCenter());
 	vectorThree myDestination = vectorThree::toVectorThree(screen_pos);
 
-	std::vector<BoundingBox> boxes = getBoxes(getMesh(mesh));
+	std::vector<BoundingBox> boxes = BoundingBox::createBoundingBoxes(mesh);
 
 	Eigen::Vector3f colorPoint = traceRay(myOrigin, myDestination, boxes, rayLength);
 
@@ -243,8 +246,7 @@ void Flyscene::raytraceScene(int width, int height) {
 
  //for every pixel shoot a ray from the origin through the pixel coords
 
-  std::vector<face> myMesh = getMesh(mesh);
-  std::vector<BoundingBox> boxes = BoundingBox::createBoundingBoxes(myMesh);
+  std::vector<BoundingBox> boxes = BoundingBox::createBoundingBoxes(mesh);
 
 
 #pragma omp parallel for schedule(dynamic, 1) num_threads(10)
@@ -253,7 +255,23 @@ void Flyscene::raytraceScene(int width, int height) {
   std::cout << "origin " << myOrigin.x << myOrigin.y << myOrigin.z << std::endl;
   for (int j = 0; j < image_size[1]; ++j) {
 
-	  std::cout << j << std::endl;
+  	    float progress = j/float(image_size[1] - 1);
+	    int barWidth = 70;
+
+	    std::cout << "[";
+	    int pos = barWidth * progress;
+
+	    for (int i = 0; i < barWidth; ++i) {
+
+	        if (i < pos) std::cout << "=";
+	        else if (i == pos) std::cout << ">";
+	        else std::cout << " ";
+	    }
+
+	    std::cout << "] " << int(progress * 100.0) << " %\r";
+	    
+	    std::cout.flush();
+		
 
     for (int i = 0; i < image_size[0]; ++i) {
 
@@ -271,7 +289,14 @@ void Flyscene::raytraceScene(int width, int height) {
 		
     }
   }
+  std::cout << std::endl;
 
+  std::cout << "=========== STATISTICS ===========" << std::endl;
+  std::cout << "Ray triangle checks: " << rayTriangleChecks << std::endl;
+  std::cout << "Ray triangle intersections: " << rayTriangleIntersections << std::endl;
+  std::cout << "Ray box checks: " << rayBoxChecks << std::endl;
+  std::cout << "Ray box intersections: " << rayBoxIntersections << std::endl;
+  std::cout << "==================================" << std::endl;
   // write the ray tracing result to a PPM image
   Tucano::ImageImporter::writePPMImage("result.ppm", pixel_data);
   std::cout << "ray tracing done! " << std::endl;
@@ -279,6 +304,8 @@ void Flyscene::raytraceScene(int width, int height) {
 
 //Checks if 
 bool triangleIntersectionCheck2(vectorThree &p, vectorThree &q, const face &currentFace, vectorThree &uvw) {
+
+	rayTriangleChecks++;
 
 	vectorThree a = currentFace.vertex1;
 	vectorThree b = currentFace.vertex2;
@@ -303,169 +330,9 @@ bool triangleIntersectionCheck2(vectorThree &p, vectorThree &q, const face &curr
 	uvw.y *= denom;
 	uvw.z *= denom;
 
-	return true;
-
-}
-
-bool triangleIntersectionCheck(Eigen::Vector3f rayDirection, Eigen::Vector3f& origin, Eigen::Vector3f& dest, Eigen::Vector3f& vertex1, Eigen::Vector3f& vertex2, Eigen::Vector3f& vertex3, Eigen::Vector3f& faceNormal) {
-	
-
-	float normalRayDot = faceNormal.dot(rayDirection);
-
-	// backface culling. this is used to stop checking the triangle if we know it's not facing the correct direction,
-	// but the implementation below isn't correct. It still might be worth looking at later.
-	//if(normalRayDot > 0) {
-
-	//	std::cout << "backface culling" << std::endl;
-
-	//	return false;
-	//}
-
-	if (fabs(normalRayDot) < 0.000001) {
-
-		return false;
-	}
-
-	float D = faceNormal.dot(vertex1);
-
-	float t = (faceNormal.dot(origin) + D) / normalRayDot;
-
-	if (t < 0) {
-
-		return false;
-	}
-
-	Eigen::Vector3f P = origin + t * rayDirection;
-
-	Eigen::Vector3f edge1 = vertex2 - vertex1;
-	Eigen::Vector3f VP1 = P - vertex1;
-	Eigen::Vector3f C1 = edge1.cross(VP1);
-	if (faceNormal.dot(C1) < 0) {
-
-		return false;
-	}
-
-	Eigen::Vector3f edge2 = vertex3 - vertex2;
-	Eigen::Vector3f VP2 = P - vertex2;
-	Eigen::Vector3f C2 = edge2.cross(VP2);
-	if (faceNormal.dot(C2) < 0) {
-
-		return false;
-	}
-
-	Eigen::Vector3f edge3 = vertex1 - vertex3;
-	Eigen::Vector3f VP3 = P - vertex3;
-	Eigen::Vector3f C3 = edge3.cross(VP3);
-	if (faceNormal.dot(C3) < 0) {
-
-		return false;
-	}
+	rayTriangleIntersections++;
 
 	return true;
-
-}
-
-
-bool boxIntersectionCheck2(vectorThree &origin, vectorThree &dest, const BoundingBox &box) {
-
-	vectorThree max = { box.xMax, box.yMax, box.zMax };
-	vectorThree min = { box.xMin, box.yMin, box.zMin };
-
-	vectorThree e = max - min;
-	vectorThree d = dest - origin;
-	vectorThree m = origin + dest - min - max;
-
-	float adx = abs(d.x);
-	if (abs(m.x) > e.x + adx) {
-		return false;
-	}
-
-	float ady = abs(d.y);
-	if (abs(m.y) > e.y + ady) {
-		return false;
-	}
-
-	float adz = abs(d.z);
-	if (abs(m.z) > e.z + adz) {
-		return false;
-	}
-
-	adx += FLT_EPSILON;
-	ady += FLT_EPSILON;
-	adz += FLT_EPSILON;
-
-	if (abs(m.y * d.z - m.z * d.y) > e.y * adz + e.z * ady) { return false; }
-	if (abs(m.z * d.x - m.x * d.z) > e.x * adz + e.z * adx) { return false; }
-	if (abs(m.x * d.y - m.y * d.x) > e.x * ady + e.y * adx) { return false; }
-
-	return true;
-
-}
-
-bool boxIntersectionCheck(const boundingBox &box, vectorThree rayDirection, vectorThree ray, vectorThree origin) {
-
-	vectorTwo intersection1;
-	vectorTwo intersection2;
-
-	if (rayDirection.z != 0) {
-
-		float Zscalar1 = box.zMax - origin.z;
-		float Zscalar2 = box.zMin - origin.z;
-
-		Zscalar1 = Zscalar1 / rayDirection.z;
-		Zscalar2 = Zscalar2 / rayDirection.z;
-
-		vectorThree temp1 = rayDirection * Zscalar1 + origin;
-		vectorThree temp2 = rayDirection * Zscalar2 + origin;
-
-		intersection1 = { temp1.x, temp1.y };
-		intersection2 = { temp2.x, temp2.y };
-	}
-	else {
-
-		if (box.zMin >= origin.z || origin.z >= box.zMax) {
-			return false;
-		}
-
-		intersection1 = {origin.x, origin.y};
-		intersection2 = { (origin + ray).x, (origin + ray).y};
-	}
-
-
-	vectorTwo rayDirection2D = intersection1 - intersection2;
-	rayDirection2D = rayDirection2D / rayDirection2D.length();
-
-	if (rayDirection2D.y != 0) {
-
-		float Yscalar1 = box.yMax - intersection2.y;
-		float Yscalar2 = box.yMin - intersection2.y;
-
-		Yscalar1 = Yscalar1 / rayDirection2D.y;
-		Yscalar2 = Yscalar2 / rayDirection2D.y;
-
-		vectorTwo intersection2D1 = rayDirection2D * Yscalar1+ intersection2;
-		vectorTwo intersection2D2 = rayDirection2D * Yscalar2 + intersection2;
-
-		float intersectionMaxX = std::max(intersection2D1.x, intersection2D2.x);
-		float intersectionMinX = std::min(intersection2D1.x, intersection2D2.x);
-
-		if (box.xMin <= intersectionMaxX && intersectionMinX <= box.xMax) {
-			return true;
-		}
-
-	}
-	else {
-
-		float intersectionMaxX = std::max(intersection1.x, intersection2.x);
-		float intersectionMinX = std::min(intersection1.x, intersection2.x);
-
-		if (box.xMin <= intersectionMaxX && intersectionMinX <= box.xMax && box.yMin <= intersection1.y && intersection1.y <= box.yMax) {
-			return true;
-		}
-
-	}
-
-	return false;
 
 }
 
@@ -479,7 +346,9 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 	//Loops through all boxes
 	for (BoundingBox &currentBox : boxes) {
 		//If ray hits a box
+		rayBoxChecks++;
 		if (currentBox.intersection(origin, dest)) {
+			rayBoxIntersections++;
 			//Then it loops through all faces of that box
 			for (const face &currentFace : currentBox.faces) {
 				//If it hits a face in that box
