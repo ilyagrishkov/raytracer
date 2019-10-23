@@ -5,6 +5,12 @@
 #include <vector>
 #include <tucano/mesh.hpp>
 #include <float.h>
+#include <set>
+
+static int rayTriangleChecks = 0;
+static int rayBoxChecks = 0;
+static int rayTriangleIntersections = 0;
+static int rayBoxIntersections = 0;
 
 static float RAYLENGTH = 10.0;
 static const int MAX_DEPTH = 5;
@@ -147,43 +153,38 @@ struct face {
 	int material_id;
 };
 
-struct boundingBox {
-	float xMax;
-	float xMin;
-	float yMax;
-	float yMin;
-	float zMax;
-	float zMin;
-	std::vector<boundingBox> children;
-	std::vector<face> faces;
-
-	boundingBox() {
-		xMax = -FLT_MAX;
-		xMin = FLT_MAX;
-		yMax = -FLT_MAX;
-		yMin = FLT_MAX;
-		zMax = -FLT_MAX;
-		zMin = FLT_MAX;
-	}
-};
 
 class BoundingBox {
-
 public:
 	std::vector<face> faces;
-	std::vector<boundingBox> children;
+	std::vector<BoundingBox> children;
 	float xMax;
 	float xMin;
 	float yMax;
 	float yMin;
 	float zMax;
 	float zMin;
+
 
 	BoundingBox(void);
 
-	bool intersection(vectorThree&, vectorThree&);
+	bool intersection(vectorThree &origin, vectorThree &dest);
 
 	static std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh &mesh);
+
+	vector<face> const &getFaces() const { return faces; }
+
+	void addChild(BoundingBox &newchild) {children.push_back(newchild);}
+
+	static BoundingBox createBox(const std::vector<face> &mesh);
+
+	static BoundingBox splitBox(BoundingBox &rootBox, int faceNum);
+
+	static void intersectingChildren(BoundingBox &currentBox, vectorThree &origin, vectorThree &dest, vector<face> &checkFaces);
+
+	std::vector<BoundingBox> const &getChildren() const { return children; }
+
+	static void printNodes(BoundingBox &currentBox);
 };
 
 #endif
