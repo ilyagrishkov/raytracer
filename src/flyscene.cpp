@@ -142,10 +142,10 @@ std::vector<face> getMesh(Tucano::Mesh mesh) {
 	return myMesh;
 }
 
-std::vector<boundingBox> getBoxes(std::vector<face> mesh) {
-	std::vector<boundingBox> boxes;
+std::vector<BoundingBox> getBoxes(std::vector<face> mesh) {
+	std::vector<BoundingBox> boxes;
 
-	boundingBox currentBox;
+	BoundingBox currentBox;
 
 	int faceNum = 100;
 
@@ -188,7 +188,7 @@ std::vector<boundingBox> getBoxes(std::vector<face> mesh) {
 			//std::cout << currentBox.faces.size() << "number of faces" << std::endl;
 
 			boxes.push_back(currentBox);
-			currentBox = boundingBox();
+			currentBox = BoundingBox();
 
 		}
 	}
@@ -209,7 +209,7 @@ void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
 	Eigen::Vector3f origin = flycamera.getCenter();
 	vectorThree myOrigin = { origin[0], origin[1], origin[2] };
 
-	std::vector<boundingBox> boxes = getBoxes(getMesh(mesh));
+	std::vector<BoundingBox> boxes = getBoxes(getMesh(mesh));
 
 	vectorThree myDestination = { screen_pos[0], screen_pos[1], screen_pos[2] };
 
@@ -247,7 +247,7 @@ void Flyscene::raytraceScene(int width, int height) {
  //for every pixel shoot a ray from the origin through the pixel coords
 
   std::vector<face> myMesh = getMesh(mesh);
-  std::vector<boundingBox> boxes = getBoxes(myMesh);
+  std::vector<BoundingBox> boxes = BoundingBox::createBoundingBoxes(myMesh);
 
 
 #pragma omp parallel for schedule(dynamic, 1) num_threads(10)
@@ -368,7 +368,7 @@ bool triangleIntersectionCheck(Eigen::Vector3f rayDirection, Eigen::Vector3f& or
 }
 
 
-bool boxIntersectionCheck2(vectorThree &origin, vectorThree &dest, const boundingBox &box) {
+bool boxIntersectionCheck2(vectorThree &origin, vectorThree &dest, const BoundingBox &box) {
 
 	vectorThree max = { box.xMax, box.yMax, box.zMax };
 	vectorThree min = { box.xMin, box.yMin, box.zMin };
@@ -473,15 +473,15 @@ bool boxIntersectionCheck(const boundingBox &box, vectorThree rayDirection, vect
 
 // Traces ray
 Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
-                                   vectorThree &dest, std::vector<boundingBox> &boxes) {
+                                   vectorThree &dest, std::vector<BoundingBox> &boxes) {
 	vectorThree uvw, point;
 	const face *minFace = nullptr;
 	float currentDistance;
 	float minDistance = FLT_MAX;
 	//Loops through all boxes
-	for (const boundingBox &currentBox : boxes) {
+	for (BoundingBox &currentBox : boxes) {
 		//If ray hits a box
-		if (boxIntersectionCheck2(origin, dest, currentBox)) {
+		if (currentBox.intersection(origin, dest)) {
 			//Then it loops through all faces of that box
 			for (const face &currentFace : currentBox.faces) {
 				//If it hits a face in that box
