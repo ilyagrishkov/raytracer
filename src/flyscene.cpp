@@ -192,7 +192,9 @@ std::vector<boundingBox> getBoxes(std::vector<face> mesh) {
 }
 
 void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
+	float rayLength = RAYLENGTH;
 	ray.resetModelMatrix();
+
 	// from pixel position to world coordinates
 	Eigen::Vector3f screen_pos = flycamera.screenToWorld(mouse_pos);
 
@@ -202,24 +204,19 @@ void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
 	// position and orient the cylinder representing the ray
 	ray.setOriginOrientation(flycamera.getCenter(), dir);
 
-	Eigen::Vector3f origin = flycamera.getCenter();
-	vectorThree myOrigin = { origin[0], origin[1], origin[2] };
+	vectorThree myOrigin = vectorThree::toVectorThree(flycamera.getCenter());
+	vectorThree myDestination = vectorThree::toVectorThree(screen_pos);
 
 	std::vector<boundingBox> boxes = getBoxes(getMesh(mesh));
 
-	vectorThree myDestination = { screen_pos[0], screen_pos[1], screen_pos[2] };
-	
-	float rayLength = 10.0;
-
 	Eigen::Vector3f colorPoint = traceRay(myOrigin, myDestination, boxes, rayLength);
-	std::cout << "color: " << colorPoint << std::endl;
-	std::cout << "ray length: " << rayLength << std::endl;
+
 	ray.setSize(ray.getRadius(), rayLength);
 	ray.render(flycamera, scene_light);
+
 	// place the camera representation (frustum) on current camera location, 
 	camerarep.resetModelMatrix();
 	camerarep.setModelMatrix(flycamera.getViewMatrix().inverse());
-
 }
 
 void Flyscene::raytraceScene(int width, int height) {
@@ -242,7 +239,7 @@ void Flyscene::raytraceScene(int width, int height) {
   origin[2] = -2;
   Eigen::Vector3f screen_coords;
 
-  vectorThree myOrigin = { origin[0], origin[1], origin[2] };
+  vectorThree myOrigin = vectorThree::toVectorThree(origin);
 
  //for every pixel shoot a ray from the origin through the pixel coords
 
@@ -262,15 +259,15 @@ void Flyscene::raytraceScene(int width, int height) {
 
 		vectorThree myScreen_coords;
 
-		//#pragma omp critical
-		//{
+		#pragma omp critical
+		{
 
 			screen_coords = flycamera.screenToWorld(Eigen::Vector2f(i, j));
-			myScreen_coords = { screen_coords[0], screen_coords[1], screen_coords[2] };
+			myScreen_coords = vectorThree::toVectorThree(screen_coords);
 
-		//}
+		}
 
-		pixel_data[i][j] = traceRay(myOrigin, myScreen_coords, boxes, RAYLENGTH);
+		pixel_data[i][j] = traceRay(myOrigin, myScreen_coords, boxes);
 		
     }
   }
@@ -475,7 +472,6 @@ bool boxIntersectionCheck(const boundingBox &box, vectorThree rayDirection, vect
 // Traces ray
 Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
                                    vectorThree &dest, std::vector<boundingBox> &boxes, float &rayLength) {
-	//std::cout << "In method " << std::endl;
 	vectorThree uvw, point;
 	const face *minFace = nullptr;
 	float currentDistance;
@@ -484,12 +480,10 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 	for (const boundingBox &currentBox : boxes) {
 		//If ray hits a box
 		if (boxIntersectionCheck2(origin, dest, currentBox)) {
-			//std::cout << "Hit box " << std::endl;
 			//Then it loops through all faces of that box
 			for (const face &currentFace : currentBox.faces) {
 				//If it hits a face in that box
 				if (triangleIntersectionCheck2(origin, dest, currentFace, uvw)) {
-					//std::cout << "Hit triangle " << std::endl;
 					//This is the point it hits the triangle
 					point = (currentFace.vertex1 * uvw.x) + (currentFace.vertex2 * uvw.y) + (currentFace.vertex3 * uvw.z);
 
@@ -505,15 +499,15 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 	}
 
 	//In case ray hits nothing
-	//std::cout << "distance to hit " << minDistance << std::endl;
 	if (minFace == nullptr) {
 		return Eigen::Vector3f(1.0, 1.0, 1.0);
 	}
 	rayLength = minDistance;
-	//std::cout << "length in method: " << rayLength << std::endl;
+
+	//Gets the colour of the material of the hit face
 	int matId = minFace->material_id;
 	Tucano::Material::Mtl mat = materials[matId];
-	Eigen::Vector3f color = mat.getAmbient() + mat.getDiffuse();
+	Eigen::Vector3f color = mat.getDiffuse();
 	return color;
 }
 

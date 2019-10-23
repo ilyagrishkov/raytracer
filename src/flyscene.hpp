@@ -18,6 +18,7 @@
 
 
 static float RAYLENGTH = 10.0;
+static const int MAX_DEPTH = 5;
 
 struct vectorTwo {
 	float x;
@@ -140,6 +141,11 @@ struct vectorThree {
 
 	float length() {
 		return sqrt(x * x + y * y + z * z);
+	}
+
+	static vectorThree toVectorThree(Eigen::Vector3f old) {
+		vectorThree out = { old(0), old(1), old(2) };
+		return out;
 	}
 
 };
