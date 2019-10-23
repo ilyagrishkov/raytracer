@@ -19,11 +19,6 @@
 #include <boundingbox.hpp>
 
 
-static int rayTriangleChecks = 0;
-static int rayBoxChecks = 0;
-static int rayTriangleIntersections = 0;
-static int rayBoxIntersections = 0;
-
 
 class Flyscene {
 
@@ -78,11 +73,9 @@ public:
    * @param dest Other point on the ray, usually screen coordinates
    * @return a RGB color
    */
-<<<<<<< HEAD
-  Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<boundingBox> &boxes, float &lengthRay=RAYLENGTH);
-=======
-  Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<BoundingBox> &boxes);
->>>>>>> Moved bounding box creation to another class
+
+  Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<BoundingBox> &boxes, float &lengthRay=RAYLENGTH);
+
   
 private:
   // A simple phong shader for rendering meshes

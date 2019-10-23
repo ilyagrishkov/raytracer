@@ -12,6 +12,7 @@ static int rayBoxChecks = 0;
 static int rayTriangleIntersections = 0;
 static int rayBoxIntersections = 0;
 
+
 static float RAYLENGTH = 10.0;
 static const int MAX_DEPTH = 5;
 

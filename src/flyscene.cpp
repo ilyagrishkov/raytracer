@@ -113,6 +113,8 @@ void Flyscene::simulate(GLFWwindow *window) {
 
 
 
+
+
 void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
 	float rayLength = RAYLENGTH;
 	ray.resetModelMatrix();
@@ -256,8 +258,9 @@ bool triangleIntersectionCheck2(vectorThree &p, vectorThree &q, const face &curr
 }
 
 // Traces ray
-Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::vector<boundingBox> &boxes, float &rayLength) {
- Moved bounding box creation to another class
+
+Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::vector<BoundingBox> &boxes, float &rayLength) {
+
 	vectorThree uvw, point;
 	const face *minFace = nullptr;
 	float currentDistance;
