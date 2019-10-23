@@ -18,6 +18,8 @@
 #include <float.h>
 
 
+static float RAYLENGTH = 10.0;
+static const int MAX_DEPTH = 5;
 
 struct vectorTwo {
 	float x;
@@ -142,6 +144,11 @@ struct vectorThree {
 		return sqrt(x * x + y * y + z * z);
 	}
 
+	static vectorThree toVectorThree(Eigen::Vector3f old) {
+		vectorThree out = { old(0), old(1), old(2) };
+		return out;
+	}
+
 };
 
 struct face {
@@ -223,7 +230,7 @@ public:
    * @param dest Other point on the ray, usually screen coordinates
    * @return a RGB color
    */
-  Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<boundingBox> &boxes);
+  Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<boundingBox> &boxes, float &lengthRay=RAYLENGTH);
   
 private:
   // A simple phong shader for rendering meshes

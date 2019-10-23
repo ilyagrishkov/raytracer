@@ -4,7 +4,6 @@
 
 
 
-
 void Flyscene::initialize(int width, int height) {
   // initiliaze the Phong Shading effect for the Opengl Previewer
   phong.initialize();
@@ -14,9 +13,6 @@ void Flyscene::initialize(int width, int height) {
   flycamera.setViewport(Eigen::Vector2f((float)width, (float)height));
 
   // load the OBJ file and materials
-  Tucano::MeshImporter::loadObjFile(mesh, materials,
-                                    "resources/models/cube.obj");
-
   Tucano::MeshImporter::loadObjFile(mesh, materials,
 									"resources/models/dodgeColorTest.obj");
 
@@ -123,11 +119,11 @@ std::vector<face> getMesh(Tucano::Mesh mesh) {
 
 		Tucano::Face oldFace = mesh.getFace(i);
 
-		Eigen::Vector3f vertex1 = (mesh.getVertex(oldFace.vertex_ids[0])).head<3>();
-		Eigen::Vector3f vertex2 = (mesh.getVertex(oldFace.vertex_ids[1])).head<3>();
-		Eigen::Vector3f vertex3 = (mesh.getVertex(oldFace.vertex_ids[2])).head<3>();
+		Eigen::Vector3f vertex1 = mesh.getShapeModelMatrix()*((mesh.getVertex(oldFace.vertex_ids[0])).head<3>());
+		Eigen::Vector3f vertex2 = mesh.getShapeModelMatrix()*(mesh.getVertex(oldFace.vertex_ids[1])).head<3>();
+		Eigen::Vector3f vertex3 = mesh.getShapeModelMatrix()*(mesh.getVertex(oldFace.vertex_ids[2])).head<3>();
 
-		Eigen::Vector3f normal = oldFace.normal;
+		Eigen::Vector3f normal = mesh.getShapeModelMatrix()*oldFace.normal;
 
 		face currentFace{
 		{vertex1[0], vertex1[1], vertex1[2]},
@@ -196,7 +192,9 @@ std::vector<boundingBox> getBoxes(std::vector<face> mesh) {
 }
 
 void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
+	float rayLength = RAYLENGTH;
 	ray.resetModelMatrix();
+
 	// from pixel position to world coordinates
 	Eigen::Vector3f screen_pos = flycamera.screenToWorld(mouse_pos);
 
@@ -206,20 +204,19 @@ void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
 	// position and orient the cylinder representing the ray
 	ray.setOriginOrientation(flycamera.getCenter(), dir);
 
-	Eigen::Vector3f origin = flycamera.getCenter();
-	vectorThree myOrigin = { origin[0], origin[1], origin[2] };
+	vectorThree myOrigin = vectorThree::toVectorThree(flycamera.getCenter());
+	vectorThree myDestination = vectorThree::toVectorThree(screen_pos);
 
 	std::vector<boundingBox> boxes = getBoxes(getMesh(mesh));
 
-	vectorThree myDestination = { screen_pos[0], screen_pos[1], screen_pos[2] };
+	Eigen::Vector3f colorPoint = traceRay(myOrigin, myDestination, boxes, rayLength);
 
-	Eigen::Vector3f colorPoint = traceRay(myOrigin, myDestination, boxes);
-	std::cout << "color: " << colorPoint << std::endl;
+	ray.setSize(ray.getRadius(), rayLength);
+	ray.render(flycamera, scene_light);
 
 	// place the camera representation (frustum) on current camera location, 
 	camerarep.resetModelMatrix();
 	camerarep.setModelMatrix(flycamera.getViewMatrix().inverse());
-
 }
 
 void Flyscene::raytraceScene(int width, int height) {
@@ -242,7 +239,7 @@ void Flyscene::raytraceScene(int width, int height) {
   origin[2] = -2;
   Eigen::Vector3f screen_coords;
 
-  vectorThree myOrigin = { origin[0], origin[1], origin[2] };
+  vectorThree myOrigin = vectorThree::toVectorThree(origin);
 
  //for every pixel shoot a ray from the origin through the pixel coords
 
@@ -253,6 +250,7 @@ void Flyscene::raytraceScene(int width, int height) {
 #pragma omp parallel for schedule(dynamic, 1) num_threads(10)
 
   //Traces ray for every pixel on the screen in parallel
+  std::cout << "origin " << myOrigin.x << myOrigin.y << myOrigin.z << std::endl;
   for (int j = 0; j < image_size[1]; ++j) {
 
 	  std::cout << j << std::endl;
@@ -265,7 +263,7 @@ void Flyscene::raytraceScene(int width, int height) {
 		{
 
 			screen_coords = flycamera.screenToWorld(Eigen::Vector2f(i, j));
-			myScreen_coords = { screen_coords[0], screen_coords[1], screen_coords[2] };
+			myScreen_coords = vectorThree::toVectorThree(screen_coords);
 
 		}
 
@@ -473,7 +471,7 @@ bool boxIntersectionCheck(const boundingBox &box, vectorThree rayDirection, vect
 
 // Traces ray
 Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
-                                   vectorThree &dest, std::vector<boundingBox> &boxes) {
+                                   vectorThree &dest, std::vector<boundingBox> &boxes, float &rayLength) {
 	vectorThree uvw, point;
 	const face *minFace = nullptr;
 	float currentDistance;
@@ -504,10 +502,12 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 	if (minFace == nullptr) {
 		return Eigen::Vector3f(1.0, 1.0, 1.0);
 	}
+	rayLength = minDistance;
 
+	//Gets the colour of the material of the hit face
 	int matId = minFace->material_id;
 	Tucano::Material::Mtl mat = materials[matId];
-	Eigen::Vector3f color = mat.getAmbient() + mat.getDiffuse();
+	Eigen::Vector3f color = mat.getDiffuse();
 	return color;
 }
 
