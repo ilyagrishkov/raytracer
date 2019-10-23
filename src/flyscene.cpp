@@ -144,6 +144,7 @@ void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
 }
 
 void Flyscene::raytraceScene(int width, int height) {
+  auto t1 = std::chrono::high_resolution_clock::now();
   std::cout << "ray tracing ..." << std::endl;
 
   // if no width or height passed, use dimensions of current viewport
@@ -211,12 +212,18 @@ void Flyscene::raytraceScene(int width, int height) {
     }
   }
   std::cout << std::endl;
+  auto t2 = std::chrono::high_resolution_clock::now();
 
   std::cout << "=========== STATISTICS ===========" << std::endl;
-  std::cout << "Ray triangle checks: " << rayTriangleChecks << std::endl;
-  std::cout << "Ray triangle intersections: " << rayTriangleIntersections << std::endl;
-  std::cout << "Ray box checks: " << rayBoxChecks << std::endl;
-  std::cout << "Ray box intersections: " << rayBoxIntersections << std::endl;
+  std::cout << "Ray-triangle checks: " << rayTriangleChecks << std::endl;
+  std::cout << "Ray-triangle intersections: " << rayTriangleIntersections << std::endl;
+  std::cout << "Ray-box checks: " << rayBoxChecks << std::endl;
+  std::cout << "Ray-box intersections: " << rayBoxIntersections << std::endl;
+  std::cout << "----------------------------------" << std::endl;
+  std::cout << "Total checks: " << rayBoxChecks + rayTriangleChecks << std::endl;
+  std::cout << "Total intersections: " << rayBoxIntersections + rayTriangleIntersections << std::endl;
+  std::cout << "----------------------------------" << std::endl;
+  std::cout << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count()/1000.0 << " seconds" << std::endl;
   std::cout << "==================================" << std::endl;
   // write the ray tracing result to a PPM image
   Tucano::ImageImporter::writePPMImage("result.ppm", pixel_data);
@@ -268,9 +275,9 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 	//Loops through all boxes
 	for (BoundingBox &currentBox : boxes) {
 		//If ray hits a box
-		if (currentBox.intersection(origin, dest)) {
+		if (currentBox.intersection(origin, dest, rayBoxChecks, rayBoxIntersections)) {
 			std::vector<face> checkFaces; 
-			BoundingBox::intersectingChildren(currentBox, origin, dest, checkFaces);
+			BoundingBox::intersectingChildren(currentBox, origin, dest, checkFaces, rayBoxChecks, rayBoxIntersections);
 			//Then it loops through all faces of that box
 			for (const face &currentFace : checkFaces) {
 				//If it hits a face in that box

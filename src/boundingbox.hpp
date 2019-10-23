@@ -5,7 +5,6 @@
 #include <vector>
 #include <tucano/mesh.hpp>
 #include <float.h>
-#include <set>
 
 static int rayTriangleChecks = 0;
 static int rayBoxChecks = 0;
@@ -169,7 +168,7 @@ public:
 
 	BoundingBox(void);
 
-	bool intersection(vectorThree &origin, vectorThree &dest);
+	bool intersection(vectorThree &origin, vectorThree &dest, int&, int&);
 
 	static std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh &mesh);
 
@@ -181,7 +180,7 @@ public:
 
 	static BoundingBox splitBox(BoundingBox &rootBox, int faceNum);
 
-	static void intersectingChildren(BoundingBox &currentBox, vectorThree &origin, vectorThree &dest, vector<face> &checkFaces);
+	static void intersectingChildren(BoundingBox &currentBox, vectorThree &origin, vectorThree &dest, vector<face> &checkFaces, int&, int&);
 
 	std::vector<BoundingBox> const &getChildren() const { return children; }
 

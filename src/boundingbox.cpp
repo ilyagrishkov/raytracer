@@ -37,7 +37,7 @@ std::vector<BoundingBox> BoundingBox::createBoundingBoxes(Tucano::Mesh &mesh) {
   std::vector<BoundingBox> boxes;
 
   BoundingBox currentBox = createBox(myMesh);
-  splitBox(currentBox, 100);
+  splitBox(currentBox, 10);
 
   boxes.push_back(currentBox);
  
@@ -128,9 +128,9 @@ BoundingBox BoundingBox::splitBox(BoundingBox &rootBox, int faceNum) {
   return rootBox;
 }
 
-bool BoundingBox::intersection(vectorThree &origin, vectorThree &dest) { 
+bool BoundingBox::intersection(vectorThree &origin, vectorThree &dest, int &counter1, int &counter2) { 
 
-  rayBoxChecks++;
+  counter1++;
   vectorThree max = { xMax, yMax, zMax };
   vectorThree min = { xMin, yMin, zMin };
 
@@ -161,16 +161,16 @@ bool BoundingBox::intersection(vectorThree &origin, vectorThree &dest) {
   if (abs(m.z * d.x - m.x * d.z) > e.x * adz + e.z * adx) { return false; }
   if (abs(m.x * d.y - m.y * d.x) > e.x * ady + e.y * adx) { return false; }
 
-  rayBoxIntersections++;
+  counter2++;
   return true;
 }
 
-void BoundingBox::intersectingChildren(BoundingBox &currentBox, vectorThree &origin, vectorThree &dest, vector<face> &checkFaces) {
+void BoundingBox::intersectingChildren(BoundingBox &currentBox, vectorThree &origin, vectorThree &dest, vector<face> &checkFaces, int &counter1, int &counter2) {
 
   for(BoundingBox &child : currentBox.children) {
 
-    if(child.intersection(origin, dest)) {
-      BoundingBox::intersectingChildren(child, origin, dest, checkFaces);
+    if(child.intersection(origin, dest, counter1, counter2)) {
+      BoundingBox::intersectingChildren(child, origin, dest, checkFaces, counter1, counter2);
     }
   }
 
