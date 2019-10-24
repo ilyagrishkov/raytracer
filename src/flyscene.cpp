@@ -236,7 +236,6 @@ void Flyscene::raytraceScene(int width, int height) {
 
   // origin of the ray is always the camera center
   Eigen::Vector3f origin = flycamera.getCenter();
-  origin[2] = -2;
   Eigen::Vector3f screen_coords;
 
   vectorThree myOrigin = vectorThree::toVectorThree(origin);
@@ -250,7 +249,6 @@ void Flyscene::raytraceScene(int width, int height) {
 #pragma omp parallel for schedule(dynamic, 1) num_threads(10)
 
   //Traces ray for every pixel on the screen in parallel
-  std::cout << "origin " << myOrigin.x << myOrigin.y << myOrigin.z << std::endl;
   for (int j = 0; j < image_size[1]; ++j) {
 
 	  std::cout << j << std::endl;
@@ -264,7 +262,6 @@ void Flyscene::raytraceScene(int width, int height) {
 
 			screen_coords = flycamera.screenToWorld(Eigen::Vector2f(i, j));
 			myScreen_coords = vectorThree::toVectorThree(screen_coords);
-
 		}
 
 		pixel_data[i][j] = traceRay(myOrigin, myScreen_coords, boxes);
@@ -364,7 +361,6 @@ bool triangleIntersectionCheck(Eigen::Vector3f rayDirection, Eigen::Vector3f& or
 	return true;
 
 }
-
 
 bool boxIntersectionCheck2(vectorThree &origin, vectorThree &dest, const boundingBox &box) {
 
@@ -477,6 +473,14 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 	float currentDistance;
 	float minDistance = FLT_MAX;
 	//Loops through all boxes
+
+	vectorThree rayDirection = dest - origin;
+	rayDirection.x *= 5.0;
+	rayDirection.y *= 5.0;
+	rayDirection.z *= 5.0;
+	dest = rayDirection + origin;
+
+
 	for (const boundingBox &currentBox : boxes) {
 		//If ray hits a box
 		if (boxIntersectionCheck2(origin, dest, currentBox)) {
