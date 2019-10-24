@@ -74,7 +74,7 @@ BoundingBox splitBox(BoundingBox& rootBox, int faceNum) {
   return rootBox;
 }
 
-bool intersection(const BoundingBox &box, vectorThree& origin, vectorThree& dest) {
+bool rayBoxIntersection(const BoundingBox &box, vectorThree& origin, vectorThree& dest) {
 
   rayBoxChecks++;
   vectorThree max = { box.xMax, box.yMax, box.zMax };
@@ -111,39 +111,51 @@ bool intersection(const BoundingBox &box, vectorThree& origin, vectorThree& dest
   return true;
 }
 
-void intersectingChildren(BoundingBox& currentBox, vectorThree& origin, vectorThree& dest, vector<face>& checkFaces) {
+bool rayTriangleIntersection(vectorThree& p, vectorThree& q, const face& currentFace, vectorThree& uvw) {
+
+	rayTriangleChecks++;
+
+	vectorThree a = currentFace.vertex1;
+	vectorThree b = currentFace.vertex2;
+	vectorThree c = currentFace.vertex3;
+
+	vectorThree pq = q - p;
+	vectorThree pa = a - p;
+	vectorThree pb = b - p;
+	vectorThree pc = c - p;
+
+	uvw.x = pq.scalarTripleProduct(pc, pb);
+	if (uvw.x < 0.0) { return false; }
+
+	uvw.y = pq.scalarTripleProduct(pa, pc);
+	if (uvw.y < 0.0) { return false; }
+
+	uvw.z = pq.scalarTripleProduct(pb, pa);
+	if (uvw.z < 0.0) { return false; }
+
+	float denom = 1.0 / (uvw.x + uvw.y + uvw.z);
+	uvw.x *= denom;
+	uvw.y *= denom;
+	uvw.z *= denom;
+
+	rayTriangleIntersections++;
+
+	return true;
+}
+
+void intersectingChildren(const BoundingBox& currentBox, vectorThree& origin, vectorThree& dest, vector<face>& checkFaces) {
 
   if (currentBox.children.size() == 0) {
 
     checkFaces.insert(checkFaces.end(), currentBox.faces.begin(), currentBox.faces.end());
   }
 
-  for (BoundingBox& child : currentBox.children) {
+  for (const BoundingBox& child : currentBox.children) {
 
-    if (intersection(child, origin, dest)) {
+    if (rayBoxIntersection(child, origin, dest)) {
       intersectingChildren(child, origin, dest, checkFaces);
     }
   }
-
-}
-
-std::vector<face> childIntersections(const BoundingBox& currentBox, vectorThree& origin, vectorThree& dest) {
-
-  std::vector<face> checkFaces;
-  if (currentBox.children.size() == 0) {
-
-    checkFaces.insert(checkFaces.end(), currentBox.faces.begin(), currentBox.faces.end());
-  }
-  
-  for (const BoundingBox& child : currentBox.children) {
-
-    if (intersection(child, origin, dest)) {
-      vector<face> newFaces = childIntersections(child, origin, dest);
-      checkFaces.insert(checkFaces.end(), newFaces.begin(), newFaces.end());
-    }
-  }
-
-  return checkFaces;
 
 }
 
@@ -181,23 +193,6 @@ std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh& mesh) {
 
   return boxes;
 }
-
-void printNodes(BoundingBox& currentBox) {
-
-  //std::cout << currentBox.xMin << " " <<  currentBox.xMin << " " << currentBox.yMin << " " << currentBox.yMax << " " << currentBox.zMin << " " << currentBox.zMax << " FACES: " << currentBox.getFaces().size() << std::endl;
-
-  if (currentBox.children.size() == 0) {
-    std::cout << currentBox.xMin << " " << currentBox.xMin << " " << currentBox.yMin << " " << currentBox.yMax << " " << currentBox.zMin << " " << currentBox.zMax << " FACES: " << currentBox.faces.size() << std::endl;
-
-  }
-  for (BoundingBox& box : currentBox.children) {
-
-    std::cout << "==";
-    printNodes(box);
-  }
-
-}
-
 
 
 //===========================================================================
@@ -375,25 +370,20 @@ void Flyscene::raytraceScene(int width, int height) {
   std::cout << "origin " << myOrigin.x << myOrigin.y << myOrigin.z << std::endl;
   for (int j = 0; j < image_size[1]; ++j) {
 
-  	    float progress = j/float(image_size[1] - 1);
-	    int barWidth = 70;
-
-	    std::cout << "[";
-	    int pos = barWidth * progress;
-
-	    for (int i = 0; i < barWidth; ++i) {
-
-	        if (i < pos) std::cout << "=";
-	        else if (i == pos) std::cout << ">";
-	        else std::cout << " ";
-	    }
-
-	    std::cout << "] " << int(progress * 100.0) << " %\r";
-	    
-	    std::cout.flush();
+	//================ Progress bar ======================
+	float progress = j/float(image_size[1] - 1);
+	int barWidth = 70;
+	std::cout << "[";
+	int pos = barWidth * progress;
+	for (int i = 0; i < barWidth; ++i) {
+		if (i < pos) std::cout << "=";
+		else if (i == pos) std::cout << ">";
+		else std::cout << " ";}
+	std::cout << "] " << int(progress * 100.0) << " %\r";    
+	std::cout.flush();
+	//====================================================
 		
-
-    for (int i = 0; i < image_size[0]; ++i) {
+	for (int i = 0; i < image_size[0]; ++i) {
 
 		vectorThree myScreen_coords;
 
@@ -428,57 +418,25 @@ void Flyscene::raytraceScene(int width, int height) {
   std::cout << "ray tracing done! " << std::endl;
 }
 
-//Checks if 
-bool triangleIntersectionCheck2(vectorThree &p, vectorThree &q, const face &currentFace, vectorThree &uvw) {
-
-	rayTriangleChecks++;
-
-	vectorThree a = currentFace.vertex1;
-	vectorThree b = currentFace.vertex2;
-	vectorThree c = currentFace.vertex3;
-
-	vectorThree pq = q - p;
-	vectorThree pa = a - p;
-	vectorThree pb = b - p;
-	vectorThree pc = c - p;
-
-	uvw.x = pq.scalarTripleProduct(pc, pb);
-	if (uvw.x < 0.0) { return false; }
-
-	uvw.y = pq.scalarTripleProduct(pa, pc);
-	if (uvw.y < 0.0) { return false; }
-
-	uvw.z = pq.scalarTripleProduct(pb, pa);
-	if (uvw.z < 0.0) { return false; }
-
-	float denom = 1.0 / (uvw.x + uvw.y + uvw.z);
-	uvw.x *= denom;
-	uvw.y *= denom;
-	uvw.z *= denom;
-
-	rayTriangleIntersections++;
-
-	return true;
-
-}
 
 // Traces ray
-
 Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::vector<BoundingBox> &boxes, float &rayLength) {
 
 	vectorThree uvw, point;
-	const face *minFace = nullptr;
+	std::vector<face> minFace;
 	float currentDistance;
 	float minDistance = FLT_MAX;
 	//Loops through all boxes
 	for (const BoundingBox &currentBox : boxes) {
 		//If ray hits a box
-		if (intersection(currentBox, origin, dest)) {
-			//intersectingChildren(currentBox, origin, dest, checkFaces);
-			//Then it loops through all faces of that box
-			for (const face currentFace : childIntersections(currentBox, origin, dest)) {
-				//If it hits a face in that box
-				if (triangleIntersectionCheck2(origin, dest, currentFace, uvw)) {
+		if (rayBoxIntersection(currentBox, origin, dest)) {
+			std::vector<face> checkFaces;
+			intersectingChildren(currentBox, origin, dest, checkFaces);
+			for (const face &currentFace : checkFaces) {
+				//If it hits a face in that box			
+				if (rayTriangleIntersection(origin, dest, currentFace, uvw)) {
+					minFace.resize(1);
+					//std::cout << currentFace.vertex1.x << std::endl;
 					//This is the point it hits the triangle
 					point = (currentFace.vertex1 * uvw.x) + (currentFace.vertex2 * uvw.y) + (currentFace.vertex3 * uvw.z);
 
@@ -486,7 +444,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 					//Calculates closest triangle
 					if (minDistance > currentDistance && currentDistance >= 0) {
 						minDistance = currentDistance;
-						minFace = &currentFace;
+						minFace[0] = currentFace;
 					}
 				}
 			}
@@ -494,13 +452,13 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 	}
 
 	//In case ray hits nothing
-	if (minFace == nullptr) {
+	if (minFace.empty()) {
 		return Eigen::Vector3f(1.0, 1.0, 1.0);
 	}
 	rayLength = minDistance;
 
 	//Gets the colour of the material of the hit face
-	int matId = minFace->material_id;
+	int matId = minFace[0].material_id;
 	Tucano::Material::Mtl mat = materials[matId];
 	Eigen::Vector3f color = mat.getDiffuse();
 	return color;
