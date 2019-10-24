@@ -17,6 +17,7 @@
 #include <tucano/utils/objimporter.hpp>
 #include <float.h>
 #include <chrono>
+#include <algorithm>
 
 static int rayTriangleChecks = 0;
 static int rayBoxChecks = 0;
@@ -188,6 +189,14 @@ public:
 	}
 
 	void addChild(BoundingBox& newchild) { children.push_back(newchild); }
+
+	float getVolume() { return ((xMax - xMin) * (yMax - yMin) * (zMax - zMin)); }
+
+	float getX() { return (xMax - xMin); }
+
+	float getY() { return (yMax - yMin); }
+
+	float getZ() { return (zMax - zMin); }
 };
 
 

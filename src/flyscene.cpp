@@ -6,6 +6,20 @@
 //============================ Bounding Box =================================
 //===========================================================================
 
+void printNodes(BoundingBox &currentBox) {
+
+  //std::cout << currentBox.xMin << " " <<  currentBox.xMin << " " << currentBox.yMin << " " << currentBox.yMax << " " << currentBox.zMin << " " << currentBox.zMax << " FACES: " << currentBox.getFaces().size() << std::endl;
+  
+  if(currentBox.children.size() == 0) {
+    std::cout << "VOLUME: " << currentBox.getVolume() << " FACES: " << currentBox.faces.size() << std::endl;
+  
+  }
+  for (BoundingBox &box : currentBox.children) {
+    printNodes(box);
+  }
+
+}
+
 BoundingBox createBox(const std::vector<face>& mesh) {
 
   BoundingBox currentBox;
@@ -49,25 +63,84 @@ BoundingBox createBox(const std::vector<face>& mesh) {
   return currentBox;
 }
 
+bool sorterX(face i, face j) {
+  return i.vertex1.x < j.vertex1.x;
+}
+
+bool sorterY(face i, face j) {
+  return i.vertex1.y < j.vertex1.y;
+}
+
+bool sorterZ(face i, face j) {
+  return i.vertex1.z < j.vertex1.z;
+}
 
 BoundingBox splitBox(BoundingBox& rootBox, int faceNum) {
 
   std::vector<face> faces = rootBox.faces;
   if (faces.size() > faceNum) {
 
+    float x = rootBox.getX();
+    float y = rootBox.getY();
+    float z = rootBox.getZ();
+
     std::size_t const half_size = faces.size() / 2;
+    std::size_t const third_size = faces.size() / 3;
+    std::size_t const two_third_size = 2 * faces.size() / 3;
 
-    std::vector<face> split_lo(faces.begin(), faces.begin() + half_size);
-    std::vector<face> split_hi(faces.begin() + half_size, faces.end());
+    if(x > y && x > z) {
+      
+      std::sort(faces.begin(), faces.end(), sorterX);
+    } 
+    else if(y > x && y > z) {
 
-    BoundingBox lo_box = createBox(split_lo);
-    BoundingBox hi_box = createBox(split_hi);
+      std::sort(faces.begin(), faces.end(), sorterY);
+    }
+    else {
 
-    BoundingBox lo_box_split = splitBox(lo_box, faceNum);
-    BoundingBox hi_box_split = splitBox(hi_box, faceNum);
+      std::sort(faces.begin(), faces.end(), sorterZ);
+    }
 
-    rootBox.addChild(lo_box_split);
-    rootBox.addChild(hi_box_split);
+    
+    std::vector<face> split_first_left(faces.begin(), faces.begin() + third_size);
+    std::vector<face> split_first_right(faces.begin() + third_size, faces.end());
+
+    std::vector<face> split_second_left(faces.begin(), faces.begin() + half_size);
+    std::vector<face> split_second_right(faces.begin() + half_size, faces.end());
+
+    std::vector<face> split_third_left(faces.begin(), faces.begin() + two_third_size);
+    std::vector<face> split_third_right(faces.begin() + two_third_size, faces.end());
+
+
+    float first_cost = 1 + 1.0f/3.0f * split_first_left.size() * 2 + 2.0f/3.0f * split_first_right.size() * 2;
+    float second_cost = 1 + 1.0f/2.0f * split_second_left.size() * 2 + 1.0f/2.0f * split_second_right.size() * 2;
+    float third_cost = 1 + 2.0f/3.0f * split_third_left.size() * 2 + 1.0f/3.0f * split_third_right.size() * 2;
+
+    BoundingBox lo_split;
+    BoundingBox hi_split;
+
+    if(first_cost > second_cost && first_cost > third_cost) {
+
+      lo_split = createBox(split_first_left);
+      hi_split = createBox(split_first_right);
+    } 
+    else if(second_cost > first_cost && second_cost > third_cost) {
+
+      lo_split = createBox(split_second_left);
+      hi_split = createBox(split_second_right);
+    }
+    else {
+
+      lo_split = createBox(split_third_left);
+      hi_split = createBox(split_third_right);
+    }
+
+
+    BoundingBox first_box = splitBox(lo_split, faceNum);
+    BoundingBox second_box = splitBox(hi_split, faceNum);
+
+    rootBox.addChild(first_box);
+    rootBox.addChild(second_box);
 
   }
 
@@ -189,6 +262,7 @@ std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh& mesh) {
   BoundingBox currentBox = createBox(myMesh);
   splitBox(currentBox, 10);
 
+  //printNodes(currentBox);
   boxes.push_back(currentBox);
 
   return boxes;
@@ -367,7 +441,7 @@ void Flyscene::raytraceScene(int width, int height) {
 #pragma omp parallel for schedule(dynamic, 1) num_threads(10)
 
   //Traces ray for every pixel on the screen in parallel
-  std::cout << "origin " << myOrigin.x << myOrigin.y << myOrigin.z << std::endl;
+  std::cout << "Origin [X: " << myOrigin.x << ", Y: " << myOrigin.y << ", Z: " << myOrigin.z << "]" << std::endl;
   for (int j = 0; j < image_size[1]; ++j) {
 
 	//================ Progress bar ======================
@@ -405,11 +479,14 @@ void Flyscene::raytraceScene(int width, int height) {
   std::cout << "=========== STATISTICS ===========" << std::endl;
   std::cout << "Ray-triangle checks: " << rayTriangleChecks << std::endl;
   std::cout << "Ray-triangle intersections: " << rayTriangleIntersections << std::endl;
+  std::cout << "Ray-triangle efficiency: " << round(float(rayTriangleIntersections)/float(rayTriangleChecks) * 100) << " %" << std::endl;
   std::cout << "Ray-box checks: " << rayBoxChecks << std::endl;
   std::cout << "Ray-box intersections: " << rayBoxIntersections << std::endl;
+  std::cout << "Ray-box efficiency: " << round(float(rayBoxIntersections)/float(rayBoxChecks) * 100) << " %" << std::endl;
   std::cout << "----------------------------------" << std::endl;
   std::cout << "Total checks: " << rayBoxChecks + rayTriangleChecks << std::endl;
   std::cout << "Total intersections: " << rayBoxIntersections + rayTriangleIntersections << std::endl;
+  std::cout << "Overall efficiency: " << round(float(rayTriangleIntersections + rayBoxIntersections)/float(rayTriangleChecks + rayBoxChecks) * 100) << " %"  << std::endl;
   std::cout << "----------------------------------" << std::endl;
   std::cout << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count()/1000.0 << " seconds" << std::endl;
   std::cout << "==================================" << std::endl;
