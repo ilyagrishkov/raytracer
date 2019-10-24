@@ -21,6 +21,7 @@
 static float RAYLENGTH = 10.0;
 static const int MAX_DEPTH = 5;
 
+
 struct vectorTwo {
 	float x;
 	float y;
@@ -118,6 +119,13 @@ struct vectorThree {
 		return out;
 	}
 
+	bool operator== (vectorThree other) {
+		if (x == other.x && y == other.y && z == other.z) {
+			return true;
+		}
+		return false;
+	}
+
 	
 
 	float dot(vectorThree other) {
@@ -148,7 +156,6 @@ struct vectorThree {
 		vectorThree out = { old(0), old(1), old(2) };
 		return out;
 	}
-
 };
 
 struct face {
@@ -231,7 +238,7 @@ public:
    * @return a RGB color
    */
   Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<boundingBox> &boxes, float &lengthRay=RAYLENGTH);
-  
+  Eigen::Vector3f calculateHardShadow(vectorThree& origin, std::vector<boundingBox>& boxes);
 private:
   // A simple phong shader for rendering meshes
   Tucano::Effects::PhongMaterial phong;

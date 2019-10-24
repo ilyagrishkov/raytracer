@@ -210,6 +210,9 @@ void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
 	std::vector<boundingBox> boxes = getBoxes(getMesh(mesh));
 
 	Eigen::Vector3f colorPoint = traceRay(myOrigin, myDestination, boxes, rayLength);
+	if(colorPoint(1) == -1.0){
+		colorPoint = { 1.0,1.0,1.0 };
+	}
 
 	ray.setSize(ray.getRadius(), rayLength);
 	ray.render(flycamera, scene_light);
@@ -250,7 +253,7 @@ void Flyscene::raytraceScene(int width, int height) {
 #pragma omp parallel for schedule(dynamic, 1) num_threads(10)
 
   //Traces ray for every pixel on the screen in parallel
-  std::cout << "origin " << myOrigin.x << myOrigin.y << myOrigin.z << std::endl;
+  //std::cout << "origin " << myOrigin.x << myOrigin.y << myOrigin.z << std::endl;
   for (int j = 0; j < image_size[1]; ++j) {
 
 	  std::cout << j << std::endl;
@@ -264,10 +267,15 @@ void Flyscene::raytraceScene(int width, int height) {
 
 			screen_coords = flycamera.screenToWorld(Eigen::Vector2f(i, j));
 			myScreen_coords = vectorThree::toVectorThree(screen_coords);
+			//myScreen_coords = myScreen_coords * 100.0;
 
 		}
-
-		pixel_data[i][j] = traceRay(myOrigin, myScreen_coords, boxes);
+		Eigen::Vector3f temp = traceRay(myOrigin, myScreen_coords, boxes);
+		if (temp(1) == -1.0) {
+			temp = { 1.0, 1.0, 1.0 };
+		}
+		pixel_data[i][j] = temp;
+			
 		
     }
   }
@@ -472,7 +480,7 @@ bool boxIntersectionCheck(const boundingBox &box, vectorThree rayDirection, vect
 // Traces ray
 Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
                                    vectorThree &dest, std::vector<boundingBox> &boxes, float &rayLength) {
-	vectorThree uvw, point;
+	vectorThree uvw, point, minPoint;
 	const face *minFace = nullptr;
 	float currentDistance;
 	float minDistance = FLT_MAX;
@@ -486,12 +494,13 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 				if (triangleIntersectionCheck2(origin, dest, currentFace, uvw)) {
 					//This is the point it hits the triangle
 					point = (currentFace.vertex1 * uvw.x) + (currentFace.vertex2 * uvw.y) + (currentFace.vertex3 * uvw.z);
-
+					
 					currentDistance = (point - origin).length();
 					//Calculates closest triangle
 					if (minDistance > currentDistance && currentDistance >= 0) {
 						minDistance = currentDistance;
 						minFace = &currentFace;
+						minPoint = point;
 					}
 				}
 			}
@@ -500,15 +509,61 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 
 	//In case ray hits nothing
 	if (minFace == nullptr) {
-		return Eigen::Vector3f(1.0, 1.0, 1.0);
+		return Eigen::Vector3f(-1.0, -1.0, -1.0);
 	}
 	rayLength = minDistance;
+	
+	Eigen::Vector3f colour = calculateHardShadow(minPoint, boxes);
+	if (colour(1) == -1.0) {
+		int matId = minFace->material_id;
+		Tucano::Material::Mtl mat = materials[matId];
+		colour = mat.getDiffuse();
+	}
+	return colour;
+}
 
+Eigen::Vector3f Flyscene::calculateHardShadow(vectorThree& origin, std::vector<boundingBox>& boxes) {
+	vectorThree dest = vectorThree::toVectorThree(lights[0]);
+	//std::cout << "light"<<lights[0] << std::endl;
+	//std::cout << "origin: " << origin.x << " " << origin.y << " " << origin.z << std::endl;
+
+	vectorThree uvw, point, minPoint;
+	const face* minFace = nullptr;
+	float currentDistance;
+	float minDistance = FLT_MAX;
+	//Loops through all boxes
+	for (const boundingBox& currentBox : boxes) {
+		//If ray hits a box
+		if (boxIntersectionCheck2(origin, dest, currentBox)) {
+			//Then it loops through all faces of that box
+			for (const face& currentFace : currentBox.faces) {
+				//If it hits a face in that box
+				if (triangleIntersectionCheck2(origin, dest, currentFace, uvw)) {
+					//This is the point it hits the triangle
+					point = (currentFace.vertex1 * uvw.x) + (currentFace.vertex2 * uvw.y) + (currentFace.vertex3 * uvw.z);
+
+					currentDistance = (point - origin).length();
+					//Calculates closest triangle
+					if (minDistance > currentDistance && currentDistance > 0.000001) {
+						minDistance = currentDistance;
+						std::cout << "min distance: " << minDistance << std::endl;
+						minFace = &currentFace;
+						minPoint = point;
+					}
+				}
+			}
+		}
+	}
+	//std::cout << "minface = null? " << (minFace == nullptr) << std::endl;
+	//In case ray hits nothing
+	//std::cout << "distance: " << currentDistance << std::endl;
+	if (minFace == nullptr || minPoint == dest) {
+		return { -1.0, -1.0, -1.0 };
+	}
+	//rayLength = minDistance;
 	//Gets the colour of the material of the hit face
-	int matId = minFace->material_id;
-	Tucano::Material::Mtl mat = materials[matId];
-	Eigen::Vector3f color = mat.getDiffuse();
-	return color;
+	std::cout << "in shadow!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+	return { 0.0, 0.0, 0.0 };
 }
 
 
