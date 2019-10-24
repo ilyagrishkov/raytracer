@@ -412,6 +412,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 	Triangle lightRay = traceRay(origin, dest, boxes);
 	const face* hitFace = lightRay.hitFace;
 	vectorThree hitPoint = lightRay.hitPoint;
+	rayLength = (hitPoint - origin).length();
 
 	//If nothing was hit, return NO_HIT_COLOR
 	if (hitFace == nullptr) {
@@ -424,8 +425,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 	for (Eigen::Vector3f lightEigen : lights) {			//Loop over every lightsource
 		vectorThree light = vectorThree::toVectorThree(lightEigen);
 
-		 Triangle shadowRay = traceRay(hitPoint, light, boxes);
-
+		Triangle shadowRay = traceRay(hitPoint, light, boxes);
 		if (shadowRay.hitFace != nullptr) {				//If a face was hit, continue because it's in the shadow	
 			continue;								
 		}
@@ -481,7 +481,7 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 
 					currentDistance = (point - origin).length();
 					//Calculates closest triangle
-					if (minDistance > currentDistance && currentDistance > 0.0001) {
+					if (minDistance > currentDistance && currentDistance > 0.1) {
 						minFace = &currentFace;
 						hitPoint = point;
 					}
