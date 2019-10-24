@@ -17,7 +17,6 @@
 #include <tucano/utils/objimporter.hpp>
 #include <float.h>
 #include <chrono>
-#include <set>
 
 static int rayTriangleChecks = 0;
 static int rayBoxChecks = 0;

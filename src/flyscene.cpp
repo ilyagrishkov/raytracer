@@ -436,7 +436,6 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 				//If it hits a face in that box			
 				if (rayTriangleIntersection(origin, dest, currentFace, uvw)) {
 					minFace.resize(1);
-					//std::cout << currentFace.vertex1.x << std::endl;
 					//This is the point it hits the triangle
 					point = (currentFace.vertex1 * uvw.x) + (currentFace.vertex2 * uvw.y) + (currentFace.vertex3 * uvw.z);
 
