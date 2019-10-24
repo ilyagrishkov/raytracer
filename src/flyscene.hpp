@@ -20,6 +20,8 @@
 
 static float RAYLENGTH = 10.0;
 static const int MAX_DEPTH = 5;
+static const int MAX_BOUNCES = 1;
+static const vectorThree NO_HIT_COLOR = { 1.0, 1.0, 1.0 };
 
 struct vectorTwo {
 	float x;
@@ -124,6 +126,13 @@ struct vectorThree {
 		out.y = y / other;
 		out.z = z / other;
 		return out;
+	}
+
+	bool operator== (vectorThree other) {
+		if (x == other.x && y == other.y && z == other.z) {
+			return true;
+		}
+		return false;
 	}
 
 	float dot(vectorThree other) {
