@@ -209,7 +209,7 @@ void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
 
 	std::vector<boundingBox> boxes = getBoxes(getMesh(mesh));
 
-	Eigen::Vector3f colorPoint = traceRay(myOrigin, myDestination, boxes, rayLength);
+	Eigen::Vector3f colorPoint = traceRay(myOrigin, myDestination, boxes, rayLength, 0);
 
 	ray.setSize(ray.getRadius(), rayLength);
 	ray.render(flycamera, scene_light);
@@ -267,7 +267,7 @@ void Flyscene::raytraceScene(int width, int height) {
 
 		}
 
-		pixel_data[i][j] = traceRay(myOrigin, myScreen_coords, boxes);
+		pixel_data[i][j] = traceRay(myOrigin, myScreen_coords, 0, boxes);
 		
     }
   }
@@ -302,64 +302,6 @@ bool triangleIntersectionCheck2(vectorThree &p, vectorThree &q, const face &curr
 	uvw.x *= denom;
 	uvw.y *= denom;
 	uvw.z *= denom;
-
-	return true;
-
-}
-
-bool triangleIntersectionCheck(Eigen::Vector3f rayDirection, Eigen::Vector3f& origin, Eigen::Vector3f& dest, Eigen::Vector3f& vertex1, Eigen::Vector3f& vertex2, Eigen::Vector3f& vertex3, Eigen::Vector3f& faceNormal) {
-	
-
-	float normalRayDot = faceNormal.dot(rayDirection);
-
-	// backface culling. this is used to stop checking the triangle if we know it's not facing the correct direction,
-	// but the implementation below isn't correct. It still might be worth looking at later.
-	//if(normalRayDot > 0) {
-
-	//	std::cout << "backface culling" << std::endl;
-
-	//	return false;
-	//}
-
-	if (fabs(normalRayDot) < 0.000001) {
-
-		return false;
-	}
-
-	float D = faceNormal.dot(vertex1);
-
-	float t = (faceNormal.dot(origin) + D) / normalRayDot;
-
-	if (t < 0) {
-
-		return false;
-	}
-
-	Eigen::Vector3f P = origin + t * rayDirection;
-
-	Eigen::Vector3f edge1 = vertex2 - vertex1;
-	Eigen::Vector3f VP1 = P - vertex1;
-	Eigen::Vector3f C1 = edge1.cross(VP1);
-	if (faceNormal.dot(C1) < 0) {
-
-		return false;
-	}
-
-	Eigen::Vector3f edge2 = vertex3 - vertex2;
-	Eigen::Vector3f VP2 = P - vertex2;
-	Eigen::Vector3f C2 = edge2.cross(VP2);
-	if (faceNormal.dot(C2) < 0) {
-
-		return false;
-	}
-
-	Eigen::Vector3f edge3 = vertex1 - vertex3;
-	Eigen::Vector3f VP3 = P - vertex3;
-	Eigen::Vector3f C3 = edge3.cross(VP3);
-	if (faceNormal.dot(C3) < 0) {
-
-		return false;
-	}
 
 	return true;
 
@@ -402,77 +344,10 @@ bool boxIntersectionCheck2(vectorThree &origin, vectorThree &dest, const boundin
 
 }
 
-bool boxIntersectionCheck(const boundingBox &box, vectorThree rayDirection, vectorThree ray, vectorThree origin) {
-
-	vectorTwo intersection1;
-	vectorTwo intersection2;
-
-	if (rayDirection.z != 0) {
-
-		float Zscalar1 = box.zMax - origin.z;
-		float Zscalar2 = box.zMin - origin.z;
-
-		Zscalar1 = Zscalar1 / rayDirection.z;
-		Zscalar2 = Zscalar2 / rayDirection.z;
-
-		vectorThree temp1 = rayDirection * Zscalar1 + origin;
-		vectorThree temp2 = rayDirection * Zscalar2 + origin;
-
-		intersection1 = { temp1.x, temp1.y };
-		intersection2 = { temp2.x, temp2.y };
-	}
-	else {
-
-		if (box.zMin >= origin.z || origin.z >= box.zMax) {
-			return false;
-		}
-
-		intersection1 = {origin.x, origin.y};
-		intersection2 = { (origin + ray).x, (origin + ray).y};
-	}
-
-
-	vectorTwo rayDirection2D = intersection1 - intersection2;
-	rayDirection2D = rayDirection2D / rayDirection2D.length();
-
-	if (rayDirection2D.y != 0) {
-
-		float Yscalar1 = box.yMax - intersection2.y;
-		float Yscalar2 = box.yMin - intersection2.y;
-
-		Yscalar1 = Yscalar1 / rayDirection2D.y;
-		Yscalar2 = Yscalar2 / rayDirection2D.y;
-
-		vectorTwo intersection2D1 = rayDirection2D * Yscalar1+ intersection2;
-		vectorTwo intersection2D2 = rayDirection2D * Yscalar2 + intersection2;
-
-		float intersectionMaxX = std::max(intersection2D1.x, intersection2D2.x);
-		float intersectionMinX = std::min(intersection2D1.x, intersection2D2.x);
-
-		if (box.xMin <= intersectionMaxX && intersectionMinX <= box.xMax) {
-			return true;
-		}
-
-	}
-	else {
-
-		float intersectionMaxX = std::max(intersection1.x, intersection2.x);
-		float intersectionMinX = std::min(intersection1.x, intersection2.x);
-
-		if (box.xMin <= intersectionMaxX && intersectionMinX <= box.xMax && box.yMin <= intersection1.y && intersection1.y <= box.yMax) {
-			return true;
-		}
-
-	}
-
-	return false;
-
-}
-
 // Traces ray
 Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
-                                   vectorThree &dest, std::vector<boundingBox> &boxes, float &rayLength) {
-	vectorThree uvw, point;
+                                   vectorThree &dest, std::vector<boundingBox> &boxes, int &bounces, float &rayLength) {
+	vectorThree uvw, point, hitPoint;
 	const face *minFace = nullptr;
 	float currentDistance;
 	float minDistance = FLT_MAX;
@@ -492,6 +367,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 					if (minDistance > currentDistance && currentDistance >= 0) {
 						minDistance = currentDistance;
 						minFace = &currentFace;
+						hitPoint = point;
 					}
 				}
 			}
@@ -502,7 +378,47 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 	if (minFace == nullptr) {
 		return Eigen::Vector3f(1.0, 1.0, 1.0);
 	}
-	rayLength = minDistance;
+	rayLength = minDistance; 
+	vectorThree lightsource;
+	//This part is actually probably what Floor did better:::
+	lightsource.toVectorThree(lights[0]);
+	vectorThree lightRay = lightsource - hitPoint;
+	std::cout<<lights[0]<<std::endl;
+	for (const boundingBox& currentBox : boxes) {
+		//If ray hits a box
+		if (boxIntersectionCheck2(hitPoint, lightsource, currentBox)) {
+			//Then it loops through all faces of that box
+			for (const face& currentFace : currentBox.faces) {
+				//If it hits a face in that box
+				if (triangleIntersectionCheck2(hitPoint, lightsource, currentFace, uvw)) {
+					//It casts a shadow 
+				}
+			}
+		}
+	}
+	//::END HARD SHADOW PART
+
+	if (bounces < 1) {
+		vectorThree direction = (hitPoint - origin) / direction.length;
+
+		vectorThree normal = minFace->normal / normal.length;
+
+		vectorThree refVector = direction - normal*(normal.dot(direction));
+
+		vectorThree dest = hitPoint + refVector * 10000;
+
+		int newBounces = bounces + 1;
+
+		float rayLength = 10000;
+
+		traceRay(hitPoint, dest, boxes, newBounces, rayLength);
+
+		//Do something with this reflection
+	}
+	
+	//refVector shoots towards next possible object
+
+	
 
 	//Gets the colour of the material of the hit face
 	int matId = minFace->material_id;
