@@ -239,7 +239,6 @@ void Flyscene::raytraceScene(int width, int height) {
 
   // origin of the ray is always the camera center
   Eigen::Vector3f origin = flycamera.getCenter();
-  origin[2] = -2;
   Eigen::Vector3f screen_coords;
 
   vectorThree myOrigin = vectorThree::toVectorThree(origin);
@@ -253,7 +252,6 @@ void Flyscene::raytraceScene(int width, int height) {
 #pragma omp parallel for schedule(dynamic, 1) num_threads(10)
 
   //Traces ray for every pixel on the screen in parallel
-  std::cout << "origin " << myOrigin.x << myOrigin.y << myOrigin.z << std::endl;
   for (int j = 0; j < image_size[1]; ++j) {
 
 	  std::cout << j << std::endl;
@@ -267,7 +265,6 @@ void Flyscene::raytraceScene(int width, int height) {
 
 			screen_coords = flycamera.screenToWorld(Eigen::Vector2f(i, j));
 			myScreen_coords = vectorThree::toVectorThree(screen_coords);
-
 		}
 
 		Eigen::Vector3f temp = traceRay(myOrigin, myScreen_coords, boxes, 0);
@@ -314,6 +311,63 @@ bool triangleIntersectionCheck2(vectorThree &p, vectorThree &q, const face &curr
 
 }
 
+bool triangleIntersectionCheck(Eigen::Vector3f rayDirection, Eigen::Vector3f& origin, Eigen::Vector3f& dest, Eigen::Vector3f& vertex1, Eigen::Vector3f& vertex2, Eigen::Vector3f& vertex3, Eigen::Vector3f& faceNormal) {
+	
+
+	float normalRayDot = faceNormal.dot(rayDirection);
+
+	// backface culling. this is used to stop checking the triangle if we know it's not facing the correct direction,
+	// but the implementation below isn't correct. It still might be worth looking at later.
+	//if(normalRayDot > 0) {
+
+	//	std::cout << "backface culling" << std::endl;
+
+	//	return false;
+	//}
+
+	if (fabs(normalRayDot) < 0.000001) {
+
+		return false;
+	}
+
+	float D = faceNormal.dot(vertex1);
+
+	float t = (faceNormal.dot(origin) + D) / normalRayDot;
+
+	if (t < 0) {
+
+		return false;
+	}
+
+	Eigen::Vector3f P = origin + t * rayDirection;
+
+	Eigen::Vector3f edge1 = vertex2 - vertex1;
+	Eigen::Vector3f VP1 = P - vertex1;
+	Eigen::Vector3f C1 = edge1.cross(VP1);
+	if (faceNormal.dot(C1) < 0) {
+
+		return false;
+	}
+
+	Eigen::Vector3f edge2 = vertex3 - vertex2;
+	Eigen::Vector3f VP2 = P - vertex2;
+	Eigen::Vector3f C2 = edge2.cross(VP2);
+	if (faceNormal.dot(C2) < 0) {
+
+		return false;
+	}
+
+	Eigen::Vector3f edge3 = vertex1 - vertex3;
+	Eigen::Vector3f VP3 = P - vertex3;
+	Eigen::Vector3f C3 = edge3.cross(VP3);
+	if (faceNormal.dot(C3) < 0) {
+
+		return false;
+	}
+
+	return true;
+
+}
 
 bool boxIntersectionCheck2(vectorThree &origin, vectorThree &dest, const boundingBox &box) {
 
@@ -407,7 +461,15 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 	float currentDistance;
 	float minDistance = FLT_MAX;
 	//Loops through all boxes
-	for (const boundingBox& currentBox : boxes) {
+
+	vectorThree rayDirection = dest - origin;
+	rayDirection.x *= 5.0;
+	rayDirection.y *= 5.0;
+	rayDirection.z *= 5.0;
+	dest = rayDirection + origin;
+
+
+	for (const boundingBox &currentBox : boxes) {
 		//If ray hits a box
 		if (boxIntersectionCheck2(origin, dest, currentBox)) {
 			//Then it loops through all faces of that box
