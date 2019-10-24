@@ -21,7 +21,7 @@
 static float RAYLENGTH = 10.0;
 static const int MAX_DEPTH = 5;
 static const int MAX_BOUNCES = 1;
-static const vectorThree NO_HIT_COLOR = { 1.0, 1.0, 1.0 };
+static const Eigen::Vector3f NO_HIT_COLOR = { 1.0, 1.0, 1.0 };
 
 struct vectorTwo {
 	float x;
