@@ -16,7 +16,7 @@
 #include <tucano/utils/mtlIO.hpp>
 #include <tucano/utils/objimporter.hpp>
 #include <float.h>
-#include <boundingbox.hpp>
+#include "boundingbox.hpp"
 #include <chrono>
 
 
