@@ -178,7 +178,14 @@ public:
 	float zMin;
 
 
-	BoundingBox(void);
+	BoundingBox(void) {
+		xMax = -FLT_MAX;
+		xMin = FLT_MAX;
+		yMax = -FLT_MAX;
+		yMin = FLT_MAX;
+		zMax = -FLT_MAX;
+		zMin = FLT_MAX;
+	}
 
 	void addChild(BoundingBox& newchild) { children.push_back(newchild); }
 };

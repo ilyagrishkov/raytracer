@@ -74,7 +74,7 @@ BoundingBox splitBox(BoundingBox& rootBox, int faceNum) {
   return rootBox;
 }
 
-bool intersection(BoundingBox &box, vectorThree& origin, vectorThree& dest) {
+bool intersection(const BoundingBox &box, vectorThree& origin, vectorThree& dest) {
 
   rayBoxChecks++;
   vectorThree max = { box.xMax, box.yMax, box.zMax };
@@ -127,7 +127,7 @@ void intersectingChildren(BoundingBox& currentBox, vectorThree& origin, vectorTh
 
 }
 
-std::vector<face> childIntersections(BoundingBox& currentBox, vectorThree& origin, vectorThree& dest) {
+std::vector<face> childIntersections(const BoundingBox& currentBox, vectorThree& origin, vectorThree& dest) {
 
   std::vector<face> checkFaces;
   if (currentBox.children.size() == 0) {
@@ -135,7 +135,7 @@ std::vector<face> childIntersections(BoundingBox& currentBox, vectorThree& origi
     checkFaces.insert(checkFaces.end(), currentBox.faces.begin(), currentBox.faces.end());
   }
   
-  for (BoundingBox& child : currentBox.children) {
+  for (const BoundingBox& child : currentBox.children) {
 
     if (intersection(child, origin, dest)) {
       vector<face> newFaces = childIntersections(child, origin, dest);
@@ -471,13 +471,12 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 	float currentDistance;
 	float minDistance = FLT_MAX;
 	//Loops through all boxes
-	for (BoundingBox &currentBox : boxes) {
+	for (const BoundingBox &currentBox : boxes) {
 		//If ray hits a box
 		if (intersection(currentBox, origin, dest)) {
-			std::vector<face> checkFaces = childIntersections(currentBox, origin, dest); 
 			//intersectingChildren(currentBox, origin, dest, checkFaces);
 			//Then it loops through all faces of that box
-			for (const face &currentFace : checkFaces) {
+			for (const face currentFace : childIntersections(currentBox, origin, dest)) {
 				//If it hits a face in that box
 				if (triangleIntersectionCheck2(origin, dest, currentFace, uvw)) {
 					//This is the point it hits the triangle
