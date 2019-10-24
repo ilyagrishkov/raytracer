@@ -118,7 +118,13 @@ struct vectorThree {
 		return out;
 	}
 
-	
+	vectorThree operator/ (float other) const {
+		vectorThree out;
+		out.x = x / other;
+		out.y = y / other;
+		out.z = z / other;
+		return out;
+	}
 
 	float dot(vectorThree other) {
 		float result = 0;
@@ -230,7 +236,7 @@ public:
    * @param dest Other point on the ray, usually screen coordinates
    * @return a RGB color
    */
-  Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<boundingBox> &boxes, int &bounces, float& lengthRay = RAYLENGTH);
+  Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<boundingBox> &boxes, int bounces, float& lengthRay = RAYLENGTH);
   
 private:
   // A simple phong shader for rendering meshes

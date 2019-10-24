@@ -209,7 +209,7 @@ void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
 
 	std::vector<boundingBox> boxes = getBoxes(getMesh(mesh));
 
-	Eigen::Vector3f colorPoint = traceRay(myOrigin, myDestination, boxes, rayLength, 0);
+	Eigen::Vector3f colorPoint = traceRay(myOrigin, myDestination, boxes, 0, rayLength);
 
 	ray.setSize(ray.getRadius(), rayLength);
 	ray.render(flycamera, scene_light);
@@ -267,7 +267,7 @@ void Flyscene::raytraceScene(int width, int height) {
 
 		}
 
-		pixel_data[i][j] = traceRay(myOrigin, myScreen_coords, 0, boxes);
+		pixel_data[i][j] = traceRay(myOrigin, myScreen_coords, boxes, 0);
 		
     }
   }
@@ -346,7 +346,7 @@ bool boxIntersectionCheck2(vectorThree &origin, vectorThree &dest, const boundin
 
 // Traces ray
 Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
-                                   vectorThree &dest, std::vector<boundingBox> &boxes, int &bounces, float &rayLength) {
+                                   vectorThree &dest, std::vector<boundingBox> &boxes, int bounces, float &rayLength) {
 	vectorThree uvw, point, hitPoint;
 	const face *minFace = nullptr;
 	float currentDistance;
@@ -399,9 +399,9 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 	//::END HARD SHADOW PART
 
 	if (bounces < 1) {
-		vectorThree direction = (hitPoint - origin) / direction.length;
+		vectorThree direction = (hitPoint - origin) / direction.length();
 
-		vectorThree normal = minFace->normal / normal.length;
+		vectorThree normal = minFace->normal / normal.length();
 
 		vectorThree refVector = direction - normal*(normal.dot(direction));
 
