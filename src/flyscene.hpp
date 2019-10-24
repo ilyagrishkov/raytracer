@@ -194,6 +194,14 @@ struct boundingBox {
 	}
 };
 
+struct Triangle {
+	vectorThree hitPoint;
+	const face* hitFace;
+
+	Triangle(vectorThree hitPoint, const face* hitFace) : hitPoint(hitPoint), hitFace(hitFace) {};
+
+};
+
 class Flyscene {
 
 public:
@@ -246,6 +254,8 @@ public:
    * @return a RGB color
    */
   Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<boundingBox> &boxes, int bounces, float& lengthRay = RAYLENGTH);
+
+  Triangle traceRay(vectorThree& origin, vectorThree& dest, std::vector<boundingBox>& boxes);
   
 private:
   // A simple phong shader for rendering meshes

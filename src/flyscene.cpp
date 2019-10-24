@@ -354,16 +354,64 @@ bool boxIntersectionCheck2(vectorThree &origin, vectorThree &dest, const boundin
 // Traces ray
 Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
                                    vectorThree &dest, std::vector<boundingBox> &boxes, int bounces, float &rayLength) {
+	//Search for hit
+	Triangle lightRay = traceRay(origin, dest, boxes);
+	const face* hitFace = lightRay.hitFace;
+	vectorThree hitPoint = lightRay.hitPoint;
+
+	//If nothing was hit, return NO_HIT_COLOR
+	if (hitFace == nullptr) {
+		return NO_HIT_COLOR;
+	}
+
+	//Start hard shadow
+	Eigen::Vector3f color = { 0.0, 0.0, 0.0 };
+
+	for (Eigen::Vector3f lightEigen : lights) {			//Loop over every lightsource
+		vectorThree light = vectorThree::toVectorThree(lightEigen);
+
+		 Triangle shadowRay = traceRay(hitPoint, light, boxes);
+
+		if (shadowRay.hitFace != nullptr) {				//If a face was hit, continue because it's in the shadow	
+			continue;								
+		}
+		int matId = hitFace->material_id;				//If nothing was hit, add the material color to it
+		Tucano::Material::Mtl mat = materials[matId];
+		color += mat.getDiffuse();						//Add diffuse color for every lightsource
+	}
+	//End hard shadow
+
+	if (bounces < MAX_BOUNCES) {
+		vectorThree direction = (hitPoint - origin) / direction.length();
+
+		vectorThree normal = hitFace->normal / normal.length();
+
+		vectorThree refVector = direction - normal*(normal.dot(direction));
+
+		vectorThree dest = hitPoint + refVector * 10000;
+
+		float rayLength = 10000;
+
+		traceRay(hitPoint, dest, boxes, bounces + 1, rayLength);
+
+		//Do something with this reflection
+	}
+	
+	//refVector shoots towards next possible object
+	return color;
+}
+
+Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<boundingBox>& boxes) {
 	vectorThree uvw, point, hitPoint;
-	const face *minFace = nullptr;
+	const face* minFace = nullptr;
 	float currentDistance;
 	float minDistance = FLT_MAX;
 	//Loops through all boxes
-	for (const boundingBox &currentBox : boxes) {
+	for (const boundingBox& currentBox : boxes) {
 		//If ray hits a box
 		if (boxIntersectionCheck2(origin, dest, currentBox)) {
 			//Then it loops through all faces of that box
-			for (const face &currentFace : currentBox.faces) {
+			for (const face& currentFace : currentBox.faces) {
 				//If it hits a face in that box
 				if (triangleIntersectionCheck2(origin, dest, currentFace, uvw)) {
 					//This is the point it hits the triangle
@@ -371,8 +419,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 
 					currentDistance = (point - origin).length();
 					//Calculates closest triangle
-					if (minDistance > currentDistance && currentDistance > 0) {
-						minDistance = currentDistance;
+					if (minDistance > currentDistance && currentDistance > 0.0001) {
 						minFace = &currentFace;
 						hitPoint = point;
 					}
@@ -380,51 +427,11 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 			}
 		}
 	}
-
 	//In case ray hits nothing
-	if (minFace == nullptr || hitPoint == dest) {
-		return Eigen::Vector3f(-1.0, -1.0, -1.0);
-	}
-	rayLength = minDistance; 
-	Eigen::Vector3f color = { 0.0, 0.0, 0.0 };
-	Eigen::Vector3f tempColor;
-
-	for (Eigen::Vector3f lightEigen : lights) {			//Loop over every lightsource
-		vectorThree light = vectorThree::toVectorThree(lightEigen);
-
-		tempColor = traceRay(hitPoint, light, boxes, MAX_BOUNCES, RAYLENGTH);
-
-		if (tempColor[1] != -1.0) {						//Returns -1.0 if the traceray function didn't hit anything
-			continue;									//So if it hits something, continue, because added value to color would be 0.0
-		}
-		int matId = minFace->material_id;
-		Tucano::Material::Mtl mat = materials[matId];
-		color += mat.getDiffuse();						//Add diffuse color for every lightsource
-	}
-
-
-	if (bounces < MAX_BOUNCES) {
-		vectorThree direction = (hitPoint - origin) / direction.length();
-
-		vectorThree normal = minFace->normal / normal.length();
-
-		vectorThree refVector = direction - normal*(normal.dot(direction));
-
-		vectorThree dest = hitPoint + refVector * 10000;
-
-		int newBounces = bounces + 1;
-
-		float rayLength = 10000;
-
-		traceRay(hitPoint, dest, boxes, newBounces, rayLength);
-
-		//Do something with this reflection
+	if (hitPoint == dest) {
+		minFace = nullptr;
 	}
 	
-	//refVector shoots towards next possible object
+	return { hitPoint, minFace };
 
-	
-
-	//Gets the colour of the material of the hit face
-	return color;
 }
