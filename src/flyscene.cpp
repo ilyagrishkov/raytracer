@@ -487,9 +487,23 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 			//Then it loops through all faces of that box
 			for (const face &currentFace : currentBox.faces) {
 				//If it hits a face in that box
+
+				face oppositeFace = currentFace;
+				std::swap<vectorThree>(oppositeFace.vertex1, oppositeFace.vertex2);
+
 				if (triangleIntersectionCheck2(origin, dest, currentFace, uvw)) {
 					//This is the point it hits the triangle
 					point = (currentFace.vertex1 * uvw.x) + (currentFace.vertex2 * uvw.y) + (currentFace.vertex3 * uvw.z);
+
+					currentDistance = (point - origin).length();
+					//Calculates closest triangle
+					if (minDistance > currentDistance && currentDistance >= 0) {
+						minDistance = currentDistance;
+						minFace = &currentFace;
+					}
+				}
+				else if (triangleIntersectionCheck2(origin, dest, oppositeFace, uvw)) {
+					point = (oppositeFace.vertex1 * uvw.x) + (oppositeFace.vertex2 * uvw.y) + (oppositeFace.vertex3 * uvw.z);
 
 					currentDistance = (point - origin).length();
 					//Calculates closest triangle
