@@ -569,25 +569,25 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 				std::swap<vectorThree>(oppositeFace.vertex1, oppositeFace.vertex2);
         
 				if (rayTriangleIntersection(origin, dest, currentFace, uvw)) {
-					minFace.resize(1);
 					//This is the point it hits the triangle
 					point = (currentFace.vertex1 * uvw.x) + (currentFace.vertex2 * uvw.y) + (currentFace.vertex3 * uvw.z);
 
 					currentDistance = (point - origin).length();
 					//Calculates closest triangle
-					if (minDistance > currentDistance && currentDistance >= 0) {
+					if (minDistance > currentDistance && currentDistance > 0.0001) {
+						minFace.resize(1);
 						minDistance = currentDistance;
 						minFace[0] = currentFace;
 						hitPoint = point;
 					}
 				}
 				else if (rayTriangleIntersection(origin, dest, oppositeFace, uvw)) {
-          minFace.resize(1);
 					point = (oppositeFace.vertex1 * uvw.x) + (oppositeFace.vertex2 * uvw.y) + (oppositeFace.vertex3 * uvw.z);
 
 					currentDistance = (point - origin).length();
 					//Calculates closest triangle
-					if (minDistance > currentDistance && currentDistance >= 0) {
+					if (minDistance > currentDistance && currentDistance > 0.0001) {
+						minFace.resize(1);
 						minDistance = currentDistance;
 						minFace[0] = currentFace;
 						hitPoint = point;
