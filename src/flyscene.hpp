@@ -216,9 +216,9 @@ public:
 
 struct Triangle {
 	vectorThree hitPoint;
-	const face* hitFace;
+	std::vector<face> hitFace;
 
-	Triangle(vectorThree hitPoint, const face* hitFace) : hitPoint(hitPoint), hitFace(hitFace) {};
+	Triangle(vectorThree hitPoint, std::vector<face> hitFace) : hitPoint(hitPoint), hitFace(hitFace) {};
 
 };
 
@@ -275,9 +275,9 @@ public:
    * @param dest Other point on the ray, usually screen coordinates
    * @return a RGB color
    */
-  Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<boundingBox> &boxes, int bounces, float& lengthRay = RAYLENGTH);
+  Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<BoundingBox> &boxes, int bounces, float& lengthRay = RAYLENGTH);
 
-  Triangle traceRay(vectorThree& origin, vectorThree& dest, std::vector<boundingBox>& boxes);
+  Triangle traceRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes);
   
 private:
   // A simple phong shader for rendering meshes
