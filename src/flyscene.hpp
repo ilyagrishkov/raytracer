@@ -143,6 +143,18 @@ struct vectorThree {
 		return result;
 	}
 
+	vectorThree normalize() {
+		vectorThree result;
+		result.x = x / length();
+		result.y = y / length();
+		result.z = z / length();
+		return result;
+	}
+
+	vectorThree reflect(vectorThree other) {
+		vectorThree result = normalize() - (other.normalize().operator*(2*dot(other.normalize())));
+	}
+
 	float scalarTripleProduct(vectorThree v, vectorThree w) {
 		return cross(v).dot(w);
 	}
