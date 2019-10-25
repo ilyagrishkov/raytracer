@@ -495,8 +495,8 @@ void Flyscene::raytraceScene(int width, int height) {
   std::cout << "==================================" << std::endl;
 
   vector<vector<Eigen::Vector3f>> temp = pixel_data;
-	  int N = temp.size();
-
+  //incorrect rotation method
+	 /* int N = temp.size();
 	  for (int x = 0; x < N / 2; x++)
 	  {
 		  for (int y = x; y < N - x - 1; y++)
@@ -508,7 +508,7 @@ void Flyscene::raytraceScene(int width, int height) {
 			  temp[y][N-1-x] = tmp;
 		  }
 	  }
- 
+ */
   Tucano::ImageImporter::writePPMImage("result.ppm", temp);
   std::cout << "ray tracing done! " << std::endl;
 }
