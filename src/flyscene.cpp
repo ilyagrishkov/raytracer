@@ -240,9 +240,9 @@ std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh& mesh) {
 
     Tucano::Face oldFace = mesh.getFace(i);
 
-    Eigen::Vector3f vertex1 = mesh.getShapeModelMatrix() * ((mesh.getVertex(oldFace.vertex_ids[0])).head<3>());
-    Eigen::Vector3f vertex2 = mesh.getShapeModelMatrix() * ((mesh.getVertex(oldFace.vertex_ids[1])).head<3>());
-    Eigen::Vector3f vertex3 = mesh.getShapeModelMatrix() * ((mesh.getVertex(oldFace.vertex_ids[2])).head<3>());
+    Eigen::Vector3f vertex1 = mesh.getShapeModelMatrix() * (mesh.getVertex(oldFace.vertex_ids[0])).head<3>();
+    Eigen::Vector3f vertex2 = mesh.getShapeModelMatrix() * (mesh.getVertex(oldFace.vertex_ids[1])).head<3>();
+    Eigen::Vector3f vertex3 = mesh.getShapeModelMatrix() * (mesh.getVertex(oldFace.vertex_ids[2])).head<3>();
 
     Eigen::Vector3f normal = mesh.getShapeModelMatrix() * oldFace.normal;
 
@@ -432,7 +432,7 @@ void Flyscene::raytraceScene(int width, int height) {
 
 #pragma omp parallel for schedule(dynamic, 1) num_threads(10)
 
-  //Traces ray for every pixel on the screen in parallel
+  // DO NOT PUT ANYTHING BETWEEN THESE TWO LINES. PLEASE.
 
   for (int j = 0; j < image_size[1]; ++j) {
 
@@ -566,7 +566,7 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 					}
 				}
 				else if (rayTriangleIntersection(origin, dest, oppositeFace, uvw)) {
-          minFace.resize(1);
+					minFace.resize(1);
 					point = (oppositeFace.vertex1 * uvw.x) + (oppositeFace.vertex2 * uvw.y) + (oppositeFace.vertex3 * uvw.z);
 
 					currentDistance = (point - origin).length();
