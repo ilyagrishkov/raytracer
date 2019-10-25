@@ -304,10 +304,7 @@ void Flyscene::initialize(int width, int height) {
   // scale the camera representation (frustum) for the ray debug
   camerarep.shapeMatrix()->scale(0.2);
 
-  // the debug ray is a cylinder, set the radius and length of the cylinder
-  ray.setSize(0.005, 10.0);
-
-  // craete a first debug ray pointing at the center of the screen
+  // create a first debug ray pointing at the center of the screen
   createDebugRay(Eigen::Vector2f(width / 2.0, height / 2.0));
 
   glEnable(GL_DEPTH_TEST);
@@ -345,7 +342,10 @@ void Flyscene::paintGL(void) {
   phong.render(mesh, flycamera, scene_light);
 
   // render the ray and camera representation for ray debug
-  ray.render(flycamera, scene_light);
+  for (Tucano::Shapes::Cylinder ray : rays) {
+	ray.render(flycamera, scene_light);
+  }
+  
   camerarep.render(flycamera, scene_light);
 
   // render ray tracing light sources as yellow spheres
@@ -379,56 +379,45 @@ void Flyscene::simulate(GLFWwindow *window) {
 }
 
 void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
-	ray.resetModelMatrix();
-
 	// from pixel position to world coordinates
+	rays.clear();
+
 	Eigen::Vector3f screen_pos = flycamera.screenToWorld(mouse_pos);
-
-	// direction from camera center to click position
-	Eigen::Vector3f dir = (screen_pos - flycamera.getCenter()).normalized();
-
-	// position and orient the cylinder representing the ray
-	ray.setOriginOrientation(flycamera.getCenter(), dir);
 
 	vectorThree myOrigin = vectorThree::toVectorThree(flycamera.getCenter());
 	vectorThree myDestination = vectorThree::toVectorThree(screen_pos);
-
 	std::vector<BoundingBox> boxes = createBoundingBoxes(mesh);
 
 	traceDebugRay(myOrigin, myDestination, boxes, 0);
-
-	// place the camera representation (frustum) on current camera location, 
+	
 	camerarep.resetModelMatrix();
 	camerarep.setModelMatrix(flycamera.getViewMatrix().inverse());
 }
 
 void Flyscene::traceDebugRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes, int bounces) {
 	
-	if (bounces > MAX_BOUNCES) {
-		std::cout << "END DEBUG" << std::endl;
+	if (bounces >= MAX_BOUNCES) {
 		return;
 	}
-	std::cout << "Bounce: " << bounces << std::endl;
 	
 	Tucano::Shapes::Cylinder debugRay = Tucano::Shapes::Cylinder(0.1, 1.0, 16, 64);
-	float rayLength;
 	Triangle tracedRay = traceRay(origin, dest, boxes);
 
+	float rayLength;
 	if (tracedRay.hitFace.empty()) {
 		rayLength = RAYLENGTH;
 	}
 	else {
-		std::cout << "HIT" << std::endl;
 		rayLength = (tracedRay.hitPoint - origin).length();
 	}
-	std::cout << "raylength: " << rayLength << std::endl;
+	
+	debugRay.setSize(0.005, rayLength);
 
-	debugRay.setSize(debugRay.getRadius(), rayLength);
+	debugRay.resetModelMatrix();
+
 	debugRay.setOriginOrientation(origin.toEigenThree(), (dest - origin).toEigenThree());
-	debugRay.render(flycamera, scene_light);
-
-	camerarep.resetModelMatrix();
-	camerarep.setModelMatrix(flycamera.getViewMatrix().inverse());
+	rays.push_back(debugRay);
+	
 	if (tracedRay.hitFace.empty()) {
 		return;
 	}

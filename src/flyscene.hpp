@@ -26,8 +26,7 @@ static int rayBoxIntersections = 0;
 
 
 static float RAYLENGTH = 10.0;
-static const int MAX_DEPTH = 5;
-static const int MAX_BOUNCES = 1;
+static const int MAX_BOUNCES = 2;
 static const Eigen::Vector3f NO_HIT_COLOR = { 1.0, 1.0, 1.0 };
 
 struct vectorTwo {
@@ -312,7 +311,7 @@ private:
   Tucano::Camera scene_light;
 
   /// A very thin cylinder to draw a debug ray
-  Tucano::Shapes::Cylinder ray = Tucano::Shapes::Cylinder(0.1, 1.0, 16, 64);
+  std::vector<Tucano::Shapes::Cylinder> rays;
 
   // Scene meshes
   Tucano::Mesh mesh;
