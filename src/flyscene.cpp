@@ -378,10 +378,6 @@ void Flyscene::simulate(GLFWwindow *window) {
   flycamera.translate(dx, dy, dz);
 }
 
-
-
-
-
 void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
 	float rayLength = RAYLENGTH;
 	ray.resetModelMatrix();
@@ -500,43 +496,6 @@ void Flyscene::raytraceScene(int width, int height) {
   // write the ray tracing result to a PPM image
   Tucano::ImageImporter::writePPMImage("result.ppm", pixel_data);
   std::cout << "ray tracing done! " << std::endl;
-}
-
-
-bool boxIntersectionCheck2(vectorThree &origin, vectorThree &dest, const BoundingBox &box) {
-
-	vectorThree max = { box.xMax, box.yMax, box.zMax };
-	vectorThree min = { box.xMin, box.yMin, box.zMin };
-
-	vectorThree e = max - min;
-	vectorThree d = dest - origin;
-	vectorThree m = origin + dest - min - max;
-
-	float adx = abs(d.x);
-	if (abs(m.x) > e.x + adx) {
-		return false;
-	}
-
-	float ady = abs(d.y);
-	if (abs(m.y) > e.y + ady) {
-		return false;
-	}
-
-	float adz = abs(d.z);
-	if (abs(m.z) > e.z + adz) {
-		return false;
-	}
-
-	adx += FLT_EPSILON;
-	ady += FLT_EPSILON;
-	adz += FLT_EPSILON;
-
-	if (abs(m.y * d.z - m.z * d.y) > e.y * adz + e.z * ady) { return false; }
-	if (abs(m.z * d.x - m.x * d.z) > e.x * adz + e.z * adx) { return false; }
-	if (abs(m.x * d.y - m.y * d.x) > e.x * ady + e.y * adx) { return false; }
-
-	return true;
-
 }
 
 // Traces ray
