@@ -481,12 +481,15 @@ void Flyscene::raytraceScene(int width, int height) {
   std::vector<BoundingBox> boxes = createBoundingBoxes(mesh);
 
 
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic, 1)
 
   // DO NOT PUT ANYTHING BETWEEN THESE TWO LINES. PLEASE.
 
   for (int j = 0; j < image_size[1]; ++j) {
 
+	std::cout << j << std::endl;
+
+	/*
 	//================ Progress bar ======================
 	float progress = j/float(image_size[1] - 1);
 	int barWidth = 70;
@@ -499,13 +502,20 @@ void Flyscene::raytraceScene(int width, int height) {
 	std::cout << "] " << int(progress * 100.0) << " %\r";    
 	std::cout.flush();
 	//====================================================
+
+	*/
 		
 	for (int i = 0; i < image_size[0]; ++i) {
 
 		vectorThree myScreen_coords;
 
+		#pragma omp critical
+		{
+
 		screen_coords = flycamera.screenToWorld(Eigen::Vector2f(i, j));
 		myScreen_coords = vectorThree::toVectorThree(screen_coords);
+
+		}
 
 
 		Eigen::Vector3f temp = traceRay(myOrigin, myScreen_coords, boxes, 0);
