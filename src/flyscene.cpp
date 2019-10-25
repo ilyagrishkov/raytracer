@@ -270,6 +270,51 @@ std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh& mesh) {
 
 
 //===========================================================================
+//========================== Helper Functions ===============================
+//===========================================================================
+
+
+Eigen::Vector3f calculateColor(const Tucano::Material::Mtl& mat, const vector<Eigen::Vector3f>& lights, 
+  const Tucano::Flycamera& flycamera, const face& currentFace, const vectorThree& point) {
+
+  Eigen::Vector3f ka = mat.getAmbient();
+  Eigen::Vector3f kd = mat.getDiffuse();
+  Eigen::Vector3f ks = mat.getSpecular();
+  float shininess = mat.getShininess();
+
+  vectorThree normal = currentFace.normal;
+  normal = normal.normalize();
+
+  vectorThree light_pos = vectorThree::toVectorThree(lights.at(lights.size() - 1));
+
+  vectorThree light_dir = light_pos - point;
+  light_dir = light_dir.normalize();
+
+
+  vectorThree oppositeLightDir {-light_dir.x, -light_dir.y, -light_dir.z};
+
+  vectorThree reflect_light = oppositeLightDir.reflect(normal);
+  reflect_light = reflect_light.normalize();
+
+
+  vectorThree eye_pos = vectorThree::toVectorThree(flycamera.getCenter());
+
+  vectorThree eye_dir = eye_pos - point;
+  eye_dir = eye_dir.normalize();
+
+  float diff = std::max((normal.dot(light_dir)), 0.0f);
+
+  float spec_temp = std::max(eye_dir.dot(reflect_light), 0.0f);
+
+  //std::cout << "EYE_DIR: (" << eye_dir.x << ", " << eye_dir.y << ", " << eye_dir.z  << ") NORMAL: (" << normal.x << ", " << normal.y << ", " << normal.z  << ") DOT: " << spec_temp << " SHININESS: " << shininess << " POW: " << std::pow(spec_temp, shininess) << std::endl;
+
+  float spec = std::pow(spec_temp, shininess);
+
+  return ka + diff * kd + spec * ks;
+}
+
+//===========================================================================
+
 
 void Flyscene::initialize(int width, int height) {
   // initiliaze the Phong Shading effect for the Opengl Previewer
@@ -538,6 +583,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes) {
 	vectorThree uvw, point, hitPoint;
 	std::vector<face> minFace;
+  std::vector<vectorThree> minPoint;
 	float currentDistance;
 	float minDistance = FLT_MAX;
   vectorThree rayDirection = dest - origin;
@@ -545,6 +591,9 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 	rayDirection.y *= 5.0;
 	rayDirection.z *= 5.0;
 	dest = rayDirection + origin;
+
+  Eigen::Vector3f light_dir_e;
+  float diff_dot;
   
 	for (const BoundingBox &currentBox : boxes) {
 		//If ray hits a box
@@ -558,6 +607,7 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
         
 				if (rayTriangleIntersection(origin, dest, currentFace, uvw)) {
 					minFace.resize(1);
+          minPoint.resize(1);
 					//This is the point it hits the triangle
 					point = (currentFace.vertex1 * uvw.x) + (currentFace.vertex2 * uvw.y) + (currentFace.vertex3 * uvw.z);
 
@@ -566,11 +616,13 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 					if (minDistance > currentDistance && currentDistance >= 0) {
 						minDistance = currentDistance;
 						minFace[0] = currentFace;
+            minPoint[0] = point;
 						hitPoint = point;
 					}
 				}
 				else if (rayTriangleIntersection(origin, dest, oppositeFace, uvw)) {
 					minFace.resize(1);
+          minPoint.resize(1);
 					point = (oppositeFace.vertex1 * uvw.x) + (oppositeFace.vertex2 * uvw.y) + (oppositeFace.vertex3 * uvw.z);
 
 					currentDistance = (point - origin).length();
@@ -578,7 +630,9 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 					if (minDistance > currentDistance && currentDistance >= 0) {
 						minDistance = currentDistance;
 						minFace[0] = currentFace;
+            minPoint[0] = point;
 						hitPoint = point;
+
 					}
 				}
 			}
@@ -588,7 +642,7 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 	if (hitPoint == dest) {
 		minFace.clear();
 	}
-	
+  
 	return { hitPoint, minFace };
 
 }

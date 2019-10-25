@@ -18,6 +18,7 @@
 #include <float.h>
 #include <chrono>
 #include <algorithm>
+#include <cmath>
 
 static int rayTriangleChecks = 0;
 static int rayBoxChecks = 0;
@@ -155,6 +156,19 @@ struct vectorThree {
 		result.x = (y * other.z) - (z * other.y);
 		result.y = (z * other.x) - (x * other.z);
 		result.z = (x * other.y) - (y * other.x);
+		return result;
+	}
+
+	vectorThree normalize() {
+		vectorThree result;
+		result.x = x / length();
+		result.y = y / length();
+		result.z = z / length();
+		return result;
+	}
+
+	vectorThree reflect(vectorThree other) {
+		vectorThree result = normalize() - (other.normalize().operator*(2*dot(other.normalize())));
 		return result;
 	}
 
