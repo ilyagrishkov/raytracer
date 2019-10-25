@@ -18,6 +18,7 @@
 #include <float.h>
 #include <chrono>
 #include <algorithm>
+#include <cmath>
 
 static int rayTriangleChecks = 0;
 static int rayBoxChecks = 0;
@@ -153,6 +154,7 @@ struct vectorThree {
 
 	vectorThree reflect(vectorThree other) {
 		vectorThree result = normalize() - (other.normalize().operator*(2*dot(other.normalize())));
+		return result;
 	}
 
 	float scalarTripleProduct(vectorThree v, vectorThree w) {

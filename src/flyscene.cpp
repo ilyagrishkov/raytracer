@@ -273,22 +273,41 @@ std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh& mesh) {
 //========================== Helper Functions ===============================
 //===========================================================================
 
-float getDiff(const vector<Eigen::Vector3f>& lights, const Eigen::Affine3f& modelMatrix, const face& currentFace, const vectorThree& point) {
 
-  Eigen::Vector3f light_pos_e = lights.at(lights.size() - 1);
+Eigen::Vector3f calculateColor(const Eigen::Vector3f& ka, const Eigen::Vector3f& kd, const Eigen::Vector3f& ks, const vector<Eigen::Vector3f>& lights, const Tucano::Flycamera& flycamera, 
+  const Eigen::Affine3f& modelMatrix, const face& currentFace, const vectorThree& point, const float shininess) {
 
-  Eigen::Vector3f point_e = Eigen::Vector3f(point.x, point.y, point.z);
+  Eigen::Vector4f normal_e_w = modelMatrix * Eigen::Vector4f(currentFace.normal.x, currentFace.normal.y, currentFace.normal.z, 0.0f);
 
-  Eigen::Vector3f light_dir = light_pos_e - point_e;
-  light_dir.normalize();
+  vectorThree normal {normal_e_w.x(), normal_e_w.y(), normal_e_w.z()};
+  normal = normal.normalize();
 
-  vectorThree normal_vt = currentFace.normal;
-  Eigen::Vector4f normal_e_w = modelMatrix * Eigen::Vector4f(normal_vt.x, normal_vt.y, normal_vt.z, 1.0f);
+  vectorThree light_pos = vectorThree::toVectorThree(lights.at(lights.size() - 1));
 
-  Eigen::Vector3f normal = Eigen::Vector3f(normal_e_w.x(), normal_e_w.y(), normal_e_w.z());
-  normal.normalize();
+  vectorThree light_dir = light_pos - point;
+  light_dir = light_dir.normalize();
 
-  return std::max(normal.dot(light_dir), 0.0f);
+
+  vectorThree oppositeLightDir {-light_dir.x, -light_dir.y, -light_dir.z};
+
+  vectorThree reflect_light = oppositeLightDir.reflect(normal);
+  reflect_light = reflect_light.normalize();
+
+
+  vectorThree eye_pos = vectorThree::toVectorThree(flycamera.getCenter());
+
+  vectorThree eye_dir = eye_pos - point;
+  eye_dir = eye_dir.normalize();
+
+  float diff = std::max((normal.dot(light_dir)), 0.0f);
+
+  float spec_temp = std::max(eye_dir.dot(reflect_light), 0.0f);
+
+  //std::cout << "EYE_DIR: (" << eye_dir.x << ", " << eye_dir.y << ", " << eye_dir.z  << ") NORMAL: (" << normal.x << ", " << normal.y << ", " << normal.z  << ") DOT: " << spec_temp << " SHININESS: " << shininess << " POW: " << std::pow(spec_temp, shininess) << std::endl;
+
+  float spec = std::pow(spec_temp, shininess);
+
+  return ka + diff * kd + spec * ks;
 }
 
 //===========================================================================
@@ -588,9 +607,12 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 	Tucano::Material::Mtl mat = materials[matId];
   Eigen::Vector3f ka = mat.getAmbient();
 	Eigen::Vector3f kd = mat.getDiffuse();
-  float diff = getDiff(lights, mesh.getModelMatrix(), minFace[0], minPoint[0]);
+  Eigen::Vector3f ks = mat.getSpecular();
+  float shininess = mat.getShininess();
+  //float diff = getDiff(lights, mesh.getModelMatrix(), minFace[0], minPoint[0]);
+  //float spec = getSpec(lights, flycamera, mesh.getModelMatrix(), minFace[0], minPoint[0], mat.getShininess());
 
-  Eigen::Vector3f color = ka + (diff * kd);
+  Eigen::Vector3f color = calculateColor(ka, kd, ks, lights, flycamera, mesh.getModelMatrix(), minFace[0], minPoint[0], shininess);
 	return color;
 }
 
