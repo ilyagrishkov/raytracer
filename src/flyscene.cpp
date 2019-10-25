@@ -556,18 +556,6 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 	//Start hard shadow
 	Eigen::Vector3f color = { 0.0, 0.0, 0.0 };
 
-	for (Eigen::Vector3f lightEigen : lights) {			//Loop over every lightsource
-		vectorThree light = vectorThree::toVectorThree(lightEigen);
-
-		Triangle shadowRay = traceRay(hitPoint, light, boxes);
-		if (!shadowRay.hitFace.empty()) {				//If a face was hit, continue because it's in the shadow	
-			continue;								
-		}
-		int matId = hitFace[0].material_id;				//If nothing was hit, add the material color to it
-		Tucano::Material::Mtl mat = materials[matId];
-		color += mat.getDiffuse();						//Add diffuse color for every lightsource
-	}
-	//End hard shadow
 
 	if (bounces < MAX_BOUNCES) {
 		vectorThree direction = (hitPoint - origin) / direction.length();
@@ -584,8 +572,9 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 
 		//Do something with this reflection
 	}
-	
-	//refVector shoots towards next possible object
+	int matId = hitFace[0].material_id;				
+	Tucano::Material::Mtl mat = materials[matId];
+	color += mat.getDiffuse();
 	return color;
 }
 
