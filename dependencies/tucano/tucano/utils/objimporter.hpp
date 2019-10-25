@@ -49,29 +49,32 @@ static string getPathName(const string& s)
 
 static void computeNormals(const vector<Eigen::Vector4f>& vertices, const vector< vector<GLuint> > indices, vector<Eigen::Vector3f>& normals)
 {
+    // initialize arrays of empty normals
     for (int i = 0; i < vertices.size(); ++i)
         normals.push_back (Eigen::Vector3f::Zero());
 
-    
+    // for every index array
     for (int id = 0; id < indices.size(); ++id)
     {
+        // every three vertices form a face
         for (int i = 0; i < indices[id].size(); i=i+3)
         {
-            Eigen::Vector3f v1 = vertices[indices[id][i+2]].head(3) - vertices[indices[id][i]].head(3);
-            Eigen::Vector3f v0 = vertices[indices[id][i+1]].head(3) - vertices[indices[id][i]].head(3);
-            v0.normalize();
-            v1.normalize();
-            Eigen::Vector3f n = v0.cross(v1);
-            n.normalize();
+            Eigen::Vector3f v0 = (vertices[indices[id][i+1]].head(3) - vertices[indices[id][i]].head(3)).normalized();
+            Eigen::Vector3f v1 = (vertices[indices[id][i+2]].head(3) - vertices[indices[id][i]].head(3)).normalized();
+            Eigen::Vector3f n = (v0.cross(v1)).normalized();
+            // sum face normal to each vertex
             normals[indices[id][i]] += n;
             normals[indices[id][i+1]] += n;
             normals[indices[id][i+2]] += n;
         }
     }
 
+    // normalize all the normal vectors
     for (int i = 0; i < normals.size(); ++i)
         normals[i].normalize();
 }
+
+
 
 /**
  * @brief Loads a mesh from an OBJ file.
@@ -96,15 +99,15 @@ static void loadObjFile (Tucano::Mesh& mesh, vector<Tucano::Material::Mtl>& mtls
 
     //Opening file:
     #ifdef TUCANODEBUG
-    cout << "Opening Wavefront obj file " << filename.c_str() << endl << endl;
+    std::cout << "Opening Wavefront obj file " << filename.c_str() << std::endl << std::endl;
     #endif
 
     ifstream in(filename.c_str(),ios::in);
     if (!in)
     {
-        cerr << "Cannot open " << filename.c_str() << endl; exit(1);
+        std::cerr << "Cannot open " << filename.c_str() << std::endl;
+        return;
     }
-
 
     // create first indices array (we do not know if file uses materials or not yet)     
     elementsVertices.push_back( vector<GLuint>() );
@@ -207,17 +210,20 @@ static void loadObjFile (Tucano::Mesh& mesh, vector<Tucano::Material::Mtl>& mtls
                 elementsVertices.back().push_back(vertexId-1);
 
                 if (std::getline(elementss, element, '/'))
-                
-                if (element.compare("") != 0)
-                {
-                    textureId = stoi(element);
-                    elementsTexIDs.back().push_back(textureId-1);
+                {                    
+                    if (element.compare("") != 0)
+                    {
+                        textureId = stoi(element);
+                        elementsTexIDs.back().push_back(textureId-1);
+                    }
                 }
                 if (std::getline(elementss, element, '/'))
-                if (element.compare("") != 0)
                 {
-                    normalId = stoi(element);
-                    elementsNormals.back().push_back(normalId-1);
+                    if (element.compare("") != 0)
+                    {
+                        normalId = stoi(element);
+                        elementsNormals.back().push_back(normalId-1);
+                    }
                 }
             }
         }
@@ -233,8 +239,7 @@ static void loadObjFile (Tucano::Mesh& mesh, vector<Tucano::Material::Mtl>& mtls
         in.close();
     }    
 
-    computeNormals(vert, elementsVertices, norm);
-
+    
     // load attributes found in file in GL buffers
     // also store the original data
     if (vert.size() > 0)
@@ -242,18 +247,27 @@ static void loadObjFile (Tucano::Mesh& mesh, vector<Tucano::Material::Mtl>& mtls
         mesh.loadVertices(vert);
         mesh.storeVertexData (vert);
     }
+
+    if (norm.size() != vert.size())
+    {
+        computeNormals(vert, elementsVertices, norm);
+
+    }
+    
     if (norm.size() > 0)
     {
         mesh.loadNormals(norm);
         mesh.storeNormalData (norm);
     }
 
-    if (texCoord.size() > 0)
+    // only supports tex coord per vertex and not per face
+    if (texCoord.size() == vert.size())
     {
         mesh.loadTexCoords(texCoord);
         mesh.storeTexCoordData (texCoord);
     }
-    if (color.size() > 0)
+
+    if (color.size() == vert.size())
     {
         mesh.loadColors(color);
         mesh.storeColorData (color);
@@ -275,7 +289,7 @@ static void loadObjFile (Tucano::Mesh& mesh, vector<Tucano::Material::Mtl>& mtls
 
     std::cout << "OBJ info:" << std::endl;
     std::cout << "number vertices : " << mesh.getNumberOfVertices() << std::endl;
-    std::cout << "number faces : " << mesh.getNumberOfElements() << std::endl;
+    std::cout << "number faces : " << mesh.getNumberOfFaces() << std::endl;
     std::cout << "number materials : " << mesh.getNumberOfMaterials() << std::endl;
 
     #ifdef TUCANODEBUG

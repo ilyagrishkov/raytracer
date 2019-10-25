@@ -30,6 +30,9 @@ protected:
     /// Shininess    
     float shininess = 10;
 
+    /// Diffuse texture map
+    Texture diffuse_tex;
+
 public:
 
     /**
@@ -45,6 +48,12 @@ public:
         kd = mtl.getDiffuse();
         ks = mtl.getSpecular();
         shininess = mtl.getShininess();
+        if (mtl.getDiffuseTextureFilename() != "")
+        {
+            std::cout << "load diffuse tx " << mtl.getDiffuseTextureFilename().c_str() << std::endl;
+            Tucano::ImageImporter::loadPPMImage (mtl.getDiffuseTextureFilename(), &diffuse_tex);
+        }
+        
     }
 
     /**
@@ -74,6 +83,10 @@ public:
         ks = value;
     }
 
+    void loadDiffuseTexture (string tex) {
+        Tucano::ImageImporter::loadPPMImage (tex, &diffuse_tex);
+    }
+
     /**
     * @brief Set shininess exponent
     * @param New shininess coeff (shininess)
@@ -87,6 +100,7 @@ public:
     Eigen::Vector3f getAmbient (void ) {return ka;}
     Eigen::Vector3f getSpecular (void ) {return ks;}
     float getShininess (void ) {return shininess;}    
+    Texture& getDiffuseTexture (void ) {return diffuse_tex;}
 
 };
 

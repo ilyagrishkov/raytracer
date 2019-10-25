@@ -33,7 +33,11 @@ namespace MaterialImporter
 
 static bool loadMTL (vector<Tucano::Material::Mtl>& materials, string filename);
 
-
+static string getPathName(const string& s)
+{
+   size_t found = s.find_last_of("/\\");
+   return s.substr(0, found+1);
+}
 
 
 /**
@@ -44,6 +48,7 @@ static bool loadMTL (vector<Tucano::Material::Mtl>& materials, string filename);
  */
 static bool loadMTL (vector<Tucano::Material::Mtl>& materials, string filename)
 {    
+    string path = getPathName(filename);
 
     ifstream in(filename.c_str(),ios::in);
     if (!in)
@@ -107,6 +112,10 @@ static bool loadMTL (vector<Tucano::Material::Mtl>& materials, string filename)
             else if (tokens[0].compare("illum") == 0)
             {
                 materials.back().setIlluminationModel( atoi(tokens[1].c_str()) );
+            }
+            else if (tokens[0].compare("map_kd") == 0)
+            {
+                materials.back().setDiffuseTextureFilename( path + tokens[1] );
             }
         }
     }

@@ -3,7 +3,6 @@
 in vec3 normal;
 in vec4 vert;
 in vec2 texCoords;
-flat in int material_id;
 
 out vec4 out_Color;
 
@@ -21,8 +20,6 @@ void main(void)
 {
     vec3 light_intensity = vec3(1.0);
 
-    int material = 1;
-
     vec3 albedo = kd;
     if (has_texture)
     {
@@ -37,12 +34,10 @@ void main(void)
     vec3 camera_position = (inverse(viewMatrix) * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
     vec3 eye_direction = normalize(camera_position-vert.xyz);
 
-
     vec3 ambient = light_intensity * ka;
     vec3 diffuse = light_intensity* albedo * max(dot(light_direction, normvec), 0.0);
-    vec3 specular = light_intensity * ks *  pow(max(dot(light_reflection, eye_direction), 0.0), max(shininess, 100.0));
+    vec3 specular = light_intensity * ks *  pow(max(dot(light_reflection, eye_direction), 0.0), shininess);
 
     out_Color = vec4(min(ambient.xyz + diffuse.xyz + specular.xyz, vec3(1.0)), 1.0);
-    
 }
 

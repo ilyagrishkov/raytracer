@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <Eigen/Dense>
+#include "tucano/utils/ppmIO.hpp"
 
 namespace Tucano
 {
@@ -37,6 +38,10 @@ protected:
 
     /// illumination model
     int illumination_model = 0;
+
+    /// texture for kd
+    string diffuse_tex_filename;
+    Texture diffuse_tex;
 
     /// material name
     string name;
@@ -102,6 +107,11 @@ public:
 
     void setIlluminationModel (int value) {illumination_model = value;}
 
+    void setDiffuseTextureFilename (string tex) {
+        diffuse_tex_filename = tex;
+        //Tucano::ImageImporter::loadPPMImage (diffuse_tex_filename, &diffuse_tex);
+    }
+
     void setName (string n) {name = n;}
     string getName (void) {return name;}
 
@@ -112,6 +122,8 @@ public:
     float getOpticalDensity (void ) const {return optical_density;}
     float getDissolveFactor (void ) const {return dissolve_factor;}
     float getIlluminationModel (void ) const {return illumination_model;}
+    string getDiffuseTextureFilename (void) const {return diffuse_tex_filename;}
+    Texture& getDiffuseTexture (void ) {return diffuse_tex;}
 
 };
 

@@ -118,20 +118,19 @@ public:
         phong_shader.setUniform("viewMatrix", camera.getViewMatrix());
         phong_shader.setUniform("lightViewMatrix", lightTrackball.getViewMatrix());
 
-        bool has_texture = mesh.hasAttribute("in_TexCoords") && !texture.isEmpty();
- 
-        phong_shader.setUniform("has_texture", has_texture);
-        if (has_texture)
-            phong_shader.setUniform("model_texture", texture.bind());
-
-        else
-            phong_shader.setUniform("model_texture", 0);
-
-
         for (int i = 0; i < mesh.numberIndexBuffers(); ++i)
         {
-
             int matid = mesh.getMaterialId (i);
+
+            bool has_texture = mesh.hasAttribute("in_TexCoords") && !phongmaterials[matid].getDiffuseTexture().isEmpty();
+     
+            phong_shader.setUniform("has_texture", has_texture);
+            if (has_texture)
+                phong_shader.setUniform("model_texture", phongmaterials[matid].getDiffuseTexture().bind());
+            else
+                phong_shader.setUniform("model_texture", 0);
+
+            
 
             if (matid >= 0 && matid < phongmaterials.size())
             {
@@ -151,7 +150,7 @@ public:
             mesh.setAttributeLocation(phong_shader);
             mesh.renderIndexBuffer(i);
             if (has_texture)
-               texture.unbind();
+               phongmaterials[matid].getDiffuseTexture().unbind();
         }
 
         phong_shader.unbind();

@@ -169,7 +169,7 @@ public:
     void normalizeModelMatrix (void)
     {
         shape_matrix.scale(normalization_scale);
-        shape_matrix.translate(-centroid);
+        shape_matrix.translate(-objectCenter);
     }
 
     /**
@@ -177,7 +177,7 @@ public:
     */
     void desnormalizeModelMatrix (void)
     {
-        model_matrix.translate(centroid);
+        model_matrix.translate(objectCenter);
         model_matrix.scale(1.0/normalization_scale);
     }
 

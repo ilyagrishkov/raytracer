@@ -386,6 +386,9 @@ void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
 	float rayLength = RAYLENGTH;
 	ray.resetModelMatrix();
 
+	//translation matrix for orientation of ppm
+
+
 	// from pixel position to world coordinates
 	Eigen::Vector3f screen_pos = flycamera.screenToWorld(mouse_pos);
 
@@ -490,8 +493,23 @@ void Flyscene::raytraceScene(int width, int height) {
   std::cout << "----------------------------------" << std::endl;
   std::cout << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count()/1000.0 << " seconds" << std::endl;
   std::cout << "==================================" << std::endl;
-  // write the ray tracing result to a PPM image
-  Tucano::ImageImporter::writePPMImage("result.ppm", pixel_data);
+
+  vector<vector<Eigen::Vector3f>> temp = pixel_data;
+	  int N = temp.size();
+
+	  for (int x = 0; x < N / 2; x++)
+	  {
+		  for (int y = x; y < N - x - 1; y++)
+		  {
+			  Eigen::Vector3f tmp = temp[x][y];
+			  temp[x][y] = temp[N-1-x][y];
+			  temp[N - 1 - y][x] = temp[N - 1 - x][N - 1 - y];
+			  temp[N - 1 - x][N - 1 - y] = temp[y][N-1-x];
+			  temp[y][N-1-x] = tmp;
+		  }
+	  }
+ 
+  Tucano::ImageImporter::writePPMImage("result.ppm", temp);
   std::cout << "ray tracing done! " << std::endl;
 }
 

@@ -45,7 +45,12 @@ static bool loadPPMImage (string filename, Tucano::Texture* tex);
  */
 static bool loadPPMImage (string filename, Tucano::Texture *tex)
 {
-    ifstream in(filename.c_str(),ios::in);
+
+
+    filename.erase(std::remove(filename.begin(), filename.end(), '\n'), filename.end());
+    filename.erase(std::remove(filename.begin(), filename.end(), '\r'), filename.end());
+
+    ifstream in(filename.c_str(), ios::in);
     if (!in)
     {
         std::cerr << "Cannot open " << filename.c_str() << std::endl; 
@@ -142,7 +147,7 @@ static void writePPMImage (string filename, const vector< vector<Eigen::Vector3f
     {
         for (int i = 0; i < width; ++i)        
         {
-            out_stream << min(255, (int)(255*data[i][j][0])) << " " << min(255, (int)(255*data[i][j][1])) << " " << min(255, (int)(255*data[i][j][2])) << " ";
+            out_stream << min(255, (int)(255*data[j][i][0])) << " " << min(255, (int)(255*data[j][i][1])) << " " << min(255, (int)(255*data[j][i][2])) << " ";
         }
         out_stream << "\n";
     }
