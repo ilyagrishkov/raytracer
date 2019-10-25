@@ -240,11 +240,11 @@ std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh& mesh) {
 
     Tucano::Face oldFace = mesh.getFace(i);
 
-    Eigen::Vector3f vertex1 = (mesh.getVertex(oldFace.vertex_ids[0])).head<3>();
-    Eigen::Vector3f vertex2 = (mesh.getVertex(oldFace.vertex_ids[1])).head<3>();
-    Eigen::Vector3f vertex3 = (mesh.getVertex(oldFace.vertex_ids[2])).head<3>();
+    Eigen::Vector3f vertex1 = mesh.getShapeModelMatrix() * (mesh.getVertex(oldFace.vertex_ids[0])).head<3>();
+    Eigen::Vector3f vertex2 = mesh.getShapeModelMatrix() * (mesh.getVertex(oldFace.vertex_ids[1])).head<3>();
+    Eigen::Vector3f vertex3 = mesh.getShapeModelMatrix() * (mesh.getVertex(oldFace.vertex_ids[2])).head<3>();
 
-    Eigen::Vector3f normal = oldFace.normal;
+    Eigen::Vector3f normal = mesh.getShapeModelMatrix() * oldFace.normal;
 
     face currentFace{
     {vertex1[0], vertex1[1], vertex1[2]},
@@ -438,9 +438,7 @@ void Flyscene::raytraceScene(int width, int height) {
 
 #pragma omp parallel for schedule(dynamic, 1) num_threads(10)
 
-  //Traces ray for every pixel on the screen in parallel
-
-  std::cout << "Origin [X: " << myOrigin.x << ", Y: " << myOrigin.y << ", Z: " << myOrigin.z << "]" << std::endl;
+  // DO NOT PUT ANYTHING BETWEEN THESE TWO LINES. PLEASE.
 
   for (int j = 0; j < image_size[1]; ++j) {
 
