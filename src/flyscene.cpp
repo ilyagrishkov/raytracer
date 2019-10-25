@@ -401,7 +401,13 @@ void Flyscene::traceDebugRay(vectorThree& origin, vectorThree& dest, std::vector
 	}
 	
 	Tucano::Shapes::Cylinder debugRay = Tucano::Shapes::Cylinder(0.1, 1.0, 16, 64);
+
 	Triangle tracedRay = traceRay(origin, dest, boxes);
+
+	vectorThree dir = (dest - origin);
+	dir.x /= 5;
+	dir.y /= 5;
+	dir.z /= 5;
 
 	float rayLength;
 	if (tracedRay.hitFace.empty()) {
@@ -415,7 +421,7 @@ void Flyscene::traceDebugRay(vectorThree& origin, vectorThree& dest, std::vector
 
 	debugRay.resetModelMatrix();
 
-	debugRay.setOriginOrientation(origin.toEigenThree(), (dest - origin).toEigenThree());
+	debugRay.setOriginOrientation(origin.toEigenThree(), dir.toEigenThree());
 	rays.push_back(debugRay);
 	
 	if (tracedRay.hitFace.empty()) {
