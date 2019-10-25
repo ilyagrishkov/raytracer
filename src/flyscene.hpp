@@ -171,6 +171,11 @@ struct vectorThree {
 		return out;
 	}
 
+	Eigen::Vector3f toEigenThree() {
+		Eigen::Vector3f out = { x, y, z};
+		return out;
+	}
+
 };
 
 struct face {
@@ -275,11 +280,14 @@ public:
    * @param dest Other point on the ray, usually screen coordinates
    * @return a RGB color
    */
-  Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<BoundingBox> &boxes, 
-							int bounces, bool debug, float& lengthRay = RAYLENGTH);
+  Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<BoundingBox> &boxes, int bounces);
+
+  void traceDebugRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes, int bounces);
 
   Triangle traceRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes);
   
+
+  vectorThree calcReflection(vectorThree hitPoint, vectorThree origin, std::vector<face> hitFace);
 private:
   // A simple phong shader for rendering meshes
   Tucano::Effects::PhongMaterial phong;

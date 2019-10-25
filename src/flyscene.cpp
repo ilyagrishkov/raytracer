@@ -379,7 +379,6 @@ void Flyscene::simulate(GLFWwindow *window) {
 }
 
 void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
-	float rayLength = RAYLENGTH;
 	ray.resetModelMatrix();
 
 	// from pixel position to world coordinates
@@ -396,11 +395,46 @@ void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
 
 	std::vector<BoundingBox> boxes = createBoundingBoxes(mesh);
 
-	Eigen::Vector3f colorPoint = traceRay(myOrigin, myDestination, boxes, true, 0, rayLength);
+	traceDebugRay(myOrigin, myDestination, boxes, 0);
 
 	// place the camera representation (frustum) on current camera location, 
 	camerarep.resetModelMatrix();
 	camerarep.setModelMatrix(flycamera.getViewMatrix().inverse());
+}
+
+void Flyscene::traceDebugRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes, int bounces) {
+	
+	if (bounces > MAX_BOUNCES) {
+		std::cout << "END DEBUG" << std::endl;
+		return;
+	}
+	std::cout << "Bounce: " << bounces << std::endl;
+	
+	Tucano::Shapes::Cylinder debugRay = Tucano::Shapes::Cylinder(0.1, 1.0, 16, 64);
+	float rayLength;
+	Triangle tracedRay = traceRay(origin, dest, boxes);
+
+	if (tracedRay.hitFace.empty()) {
+		rayLength = RAYLENGTH;
+	}
+	else {
+		std::cout << "HIT" << std::endl;
+		rayLength = (tracedRay.hitPoint - origin).length();
+	}
+	std::cout << "raylength: " << rayLength << std::endl;
+
+	debugRay.setSize(debugRay.getRadius(), rayLength);
+	debugRay.setOriginOrientation(origin.toEigenThree(), (dest - origin).toEigenThree());
+	debugRay.render(flycamera, scene_light);
+
+	camerarep.resetModelMatrix();
+	camerarep.setModelMatrix(flycamera.getViewMatrix().inverse());
+	if (tracedRay.hitFace.empty()) {
+		return;
+	}
+	vectorThree reflect = calcReflection(tracedRay.hitPoint, origin, tracedRay.hitFace);
+
+	traceDebugRay(tracedRay.hitPoint, reflect, boxes, bounces + 1);
 }
 
 void Flyscene::raytraceScene(int width, int height) {
@@ -460,7 +494,7 @@ void Flyscene::raytraceScene(int width, int height) {
 			myScreen_coords = vectorThree::toVectorThree(screen_coords);
 		}
 
-		pixel_data[i][j] = traceRay(myOrigin, myScreen_coords, boxes, false, 0);
+		pixel_data[i][j] = traceRay(myOrigin, myScreen_coords, boxes, 0);
 		
     }
   }
@@ -488,7 +522,7 @@ void Flyscene::raytraceScene(int width, int height) {
 
 // Traces ray
 Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::vector<BoundingBox> &boxes, 
-									int bounces, bool debug, float &rayLength) {
+									int bounces) {
 	//Search for hit
 	Triangle lightRay = traceRay(origin, dest, boxes);
 	std::vector<face> hitFace = lightRay.hitFace;
@@ -498,30 +532,14 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 	if (hitFace.empty()) {
 		return NO_HIT_COLOR;
 	}
-	//std::cout << "length: " << (hitPoint - origin).length() << std::endl;
-	rayLength = (hitPoint - origin).length();
-	//std::cout << "raylength: " << rayLength << std::endl;
-	if (debug) {
-		ray.setSize(ray.getRadius(), rayLength);
-		ray.render(flycamera, scene_light);
-	}
-
+	
 	//Start hard shadow
 	Eigen::Vector3f color = { 0.0, 0.0, 0.0 };
 
 
 	if (bounces < MAX_BOUNCES) {
-		vectorThree direction = (hitPoint - origin) / direction.length();
-
-		vectorThree normal = hitFace[0].normal / normal.length();
-
-		vectorThree refVector = direction - normal*(normal.dot(direction));
-
-		vectorThree dest = hitPoint + refVector * 10000;
-
-		float rayLength = 10000;
-
-		traceRay(hitPoint, dest, boxes, bounces + 1, debug, rayLength);
+		dest = calcReflection(hitPoint, origin, hitFace);
+		traceRay(hitPoint, dest, boxes, bounces + 1);
 
 		//Do something with this reflection
 	}
@@ -529,6 +547,18 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 	Tucano::Material::Mtl mat = materials[matId];
 	color += mat.getDiffuse();
 	return color;
+}
+
+vectorThree Flyscene::calcReflection(vectorThree hitPoint, vectorThree origin, std::vector<face> hitFace) {
+	vectorThree direction = (hitPoint - origin) / direction.length();
+
+	vectorThree normal = hitFace[0].normal / normal.length();
+
+	vectorThree refVector = direction - normal * (normal.dot(direction));
+
+	vectorThree dest = hitPoint + refVector * 10000;
+
+	return dest;
 }
 
 Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes) {
@@ -553,25 +583,29 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 				std::swap<vectorThree>(oppositeFace.vertex1, oppositeFace.vertex2);
         
 				if (rayTriangleIntersection(origin, dest, currentFace, uvw)) {
-					minFace.resize(1);
+					
 					//This is the point it hits the triangle
 					point = (currentFace.vertex1 * uvw.x) + (currentFace.vertex2 * uvw.y) + (currentFace.vertex3 * uvw.z);
 
 					currentDistance = (point - origin).length();
 					//Calculates closest triangle
 					if (minDistance > currentDistance && currentDistance >= 0.0001) {
+						minFace.resize(1);
+						std::cout << "HIT in HERE" << std::endl;
 						minDistance = currentDistance;
 						minFace[0] = currentFace;
 						hitPoint = point;
 					}
 				}
 				else if (rayTriangleIntersection(origin, dest, oppositeFace, uvw)) {
-					minFace.resize(1);
+					
 					point = (oppositeFace.vertex1 * uvw.x) + (oppositeFace.vertex2 * uvw.y) + (oppositeFace.vertex3 * uvw.z);
 
 					currentDistance = (point - origin).length();
 					//Calculates closest triangle
 					if (minDistance > currentDistance && currentDistance > 0.0001) {
+						minFace.resize(1);
+						std::cout << "HIT in THERE" << std::endl;
 						minDistance = currentDistance;
 						minFace[0] = currentFace;
 						hitPoint = point;
@@ -584,7 +618,7 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 	if (hitPoint == dest) {
 		minFace.clear();
 	}
-	
+	std::cout << "minface empty? " << minFace.empty() << std::endl;
 	return { hitPoint, minFace };
 
 }
