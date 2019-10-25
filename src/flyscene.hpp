@@ -275,7 +275,8 @@ public:
    * @param dest Other point on the ray, usually screen coordinates
    * @return a RGB color
    */
-  Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<BoundingBox> &boxes, int bounces, float& lengthRay = RAYLENGTH);
+  Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<BoundingBox> &boxes, 
+							int bounces, bool debug, float& lengthRay = RAYLENGTH);
 
   Triangle traceRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes);
   
