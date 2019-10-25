@@ -531,14 +531,15 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 						minFace[0] = currentFace;
 					}
 				}
-				else if (triangleIntersectionCheck2(origin, dest, oppositeFace, uvw)) {
+				else if (rayTriangleIntersection(origin, dest, oppositeFace, uvw)) {
+          minFace.resize(1);
 					point = (oppositeFace.vertex1 * uvw.x) + (oppositeFace.vertex2 * uvw.y) + (oppositeFace.vertex3 * uvw.z);
 
 					currentDistance = (point - origin).length();
 					//Calculates closest triangle
 					if (minDistance > currentDistance && currentDistance >= 0) {
 						minDistance = currentDistance;
-						minFace = &currentFace;
+						minFace[0] = currentFace;
 					}
 				}
 			}
