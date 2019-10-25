@@ -481,7 +481,7 @@ void Flyscene::raytraceScene(int width, int height) {
   std::vector<BoundingBox> boxes = createBoundingBoxes(mesh);
 
 
-#pragma omp parallel for schedule(dynamic, 1) num_threads(10)
+#pragma omp parallel for if(openMP)
 
   // DO NOT PUT ANYTHING BETWEEN THESE TWO LINES. PLEASE.
 
@@ -504,12 +504,9 @@ void Flyscene::raytraceScene(int width, int height) {
 
 		vectorThree myScreen_coords;
 
-		#pragma omp critical
-		{
+		screen_coords = flycamera.screenToWorld(Eigen::Vector2f(i, j));
+		myScreen_coords = vectorThree::toVectorThree(screen_coords);
 
-			screen_coords = flycamera.screenToWorld(Eigen::Vector2f(i, j));
-			myScreen_coords = vectorThree::toVectorThree(screen_coords);
-		}
 
 		Eigen::Vector3f temp = traceRay(myOrigin, myScreen_coords, boxes, 0);
 		if (temp[1] == -1) {
@@ -576,14 +573,13 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 	}
 	int matId = hitFace[0].material_id;				
 	Tucano::Material::Mtl mat = materials[matId];
-	color += mat.getDiffuse();
+	color = calculateColor(mat, lights, flycamera, hitFace[0], hitPoint);
 	return color;
 }
 
 Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes) {
 	vectorThree uvw, point, hitPoint;
 	std::vector<face> minFace;
-  std::vector<vectorThree> minPoint;
 	float currentDistance;
 	float minDistance = FLT_MAX;
   vectorThree rayDirection = dest - origin;
@@ -607,7 +603,6 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
         
 				if (rayTriangleIntersection(origin, dest, currentFace, uvw)) {
 					minFace.resize(1);
-          minPoint.resize(1);
 					//This is the point it hits the triangle
 					point = (currentFace.vertex1 * uvw.x) + (currentFace.vertex2 * uvw.y) + (currentFace.vertex3 * uvw.z);
 
@@ -616,13 +611,11 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 					if (minDistance > currentDistance && currentDistance >= 0) {
 						minDistance = currentDistance;
 						minFace[0] = currentFace;
-            minPoint[0] = point;
 						hitPoint = point;
 					}
 				}
 				else if (rayTriangleIntersection(origin, dest, oppositeFace, uvw)) {
 					minFace.resize(1);
-          minPoint.resize(1);
 					point = (oppositeFace.vertex1 * uvw.x) + (oppositeFace.vertex2 * uvw.y) + (oppositeFace.vertex3 * uvw.z);
 
 					currentDistance = (point - origin).length();
@@ -630,7 +623,6 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 					if (minDistance > currentDistance && currentDistance >= 0) {
 						minDistance = currentDistance;
 						minFace[0] = currentFace;
-            minPoint[0] = point;
 						hitPoint = point;
 
 					}
