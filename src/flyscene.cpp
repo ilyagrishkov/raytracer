@@ -274,12 +274,15 @@ std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh& mesh) {
 //===========================================================================
 
 
-Eigen::Vector3f calculateColor(const Eigen::Vector3f& ka, const Eigen::Vector3f& kd, const Eigen::Vector3f& ks, const vector<Eigen::Vector3f>& lights, const Tucano::Flycamera& flycamera, 
-  const Eigen::Affine3f& modelMatrix, const face& currentFace, const vectorThree& point, const float shininess) {
+Eigen::Vector3f calculateColor(const Tucano::Material::Mtl& mat, const vector<Eigen::Vector3f>& lights, 
+  const Tucano::Flycamera& flycamera, const face& currentFace, const vectorThree& point) {
 
-  Eigen::Vector4f normal_e_w = modelMatrix * Eigen::Vector4f(currentFace.normal.x, currentFace.normal.y, currentFace.normal.z, 0.0f);
+  Eigen::Vector3f ka = mat.getAmbient();
+  Eigen::Vector3f kd = mat.getDiffuse();
+  Eigen::Vector3f ks = mat.getSpecular();
+  float shininess = mat.getShininess();
 
-  vectorThree normal {normal_e_w.x(), normal_e_w.y(), normal_e_w.z()};
+  vectorThree normal = currentFace.normal;
   normal = normal.normalize();
 
   vectorThree light_pos = vectorThree::toVectorThree(lights.at(lights.size() - 1));
@@ -605,14 +608,8 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 	//Gets the colour of the material of the hit face
 	int matId = minFace[0].material_id;
 	Tucano::Material::Mtl mat = materials[matId];
-  Eigen::Vector3f ka = mat.getAmbient();
-	Eigen::Vector3f kd = mat.getDiffuse();
-  Eigen::Vector3f ks = mat.getSpecular();
-  float shininess = mat.getShininess();
-  //float diff = getDiff(lights, mesh.getModelMatrix(), minFace[0], minPoint[0]);
-  //float spec = getSpec(lights, flycamera, mesh.getModelMatrix(), minFace[0], minPoint[0], mat.getShininess());
 
-  Eigen::Vector3f color = calculateColor(ka, kd, ks, lights, flycamera, mesh.getModelMatrix(), minFace[0], minPoint[0], shininess);
+  Eigen::Vector3f color = calculateColor(mat, lights, flycamera, minFace[0], minPoint[0]);
 	return color;
 }
 
