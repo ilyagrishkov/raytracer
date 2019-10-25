@@ -378,10 +378,6 @@ void Flyscene::simulate(GLFWwindow *window) {
   flycamera.translate(dx, dy, dz);
 }
 
-
-
-
-
 void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
 	float rayLength = RAYLENGTH;
 	ray.resetModelMatrix();
@@ -400,7 +396,10 @@ void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
 
 	std::vector<BoundingBox> boxes = createBoundingBoxes(mesh);
 
-	Eigen::Vector3f colorPoint = traceRay(myOrigin, myDestination, boxes, rayLength);
+	Eigen::Vector3f colorPoint = traceRay(myOrigin, myDestination, boxes, 0, rayLength);
+	if (colorPoint[1] == -1.0) {
+		colorPoint = NO_HIT_COLOR;
+	}
 
 	ray.setSize(ray.getRadius(), rayLength);
 	ray.render(flycamera, scene_light);
@@ -469,7 +468,11 @@ void Flyscene::raytraceScene(int width, int height) {
 			myScreen_coords = vectorThree::toVectorThree(screen_coords);
 		}
 
-		pixel_data[i][j] = traceRay(myOrigin, myScreen_coords, boxes);
+		Eigen::Vector3f temp = traceRay(myOrigin, myScreen_coords, boxes, 0);
+		if (temp[1] == -1) {
+			temp = NO_HIT_COLOR;
+		}
+		pixel_data[i][j] = temp;
 		
     }
   }
@@ -495,11 +498,47 @@ void Flyscene::raytraceScene(int width, int height) {
   std::cout << "ray tracing done! " << std::endl;
 }
 
-
 // Traces ray
-Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::vector<BoundingBox> &boxes, float &rayLength) {
+Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
+                                   vectorThree &dest, std::vector<BoundingBox> &boxes, int bounces, float &rayLength) {
+	//Search for hit
+	Triangle lightRay = traceRay(origin, dest, boxes);
+	std::vector<face> hitFace = lightRay.hitFace;
+	vectorThree hitPoint = lightRay.hitPoint;
+	rayLength = (hitPoint - origin).length();
 
-	vectorThree uvw, point;
+	//If nothing was hit, return NO_HIT_COLOR
+	if (hitFace.empty()) {
+		return NO_HIT_COLOR;
+	}
+
+	//Start hard shadow
+	Eigen::Vector3f color = { 0.0, 0.0, 0.0 };
+
+
+	if (bounces < MAX_BOUNCES) {
+		vectorThree direction = (hitPoint - origin) / direction.length();
+
+		vectorThree normal = hitFace[0].normal / normal.length();
+
+		vectorThree refVector = direction - normal*(normal.dot(direction));
+
+		vectorThree dest = hitPoint + refVector * 10000;
+
+		float rayLength = 10000;
+
+		traceRay(hitPoint, dest, boxes, bounces + 1, rayLength);
+
+		//Do something with this reflection
+	}
+	int matId = hitFace[0].material_id;				
+	Tucano::Material::Mtl mat = materials[matId];
+	color += mat.getDiffuse();
+	return color;
+}
+
+Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes) {
+	vectorThree uvw, point, hitPoint;
 	std::vector<face> minFace;
 	float currentDistance;
 	float minDistance = FLT_MAX;
@@ -529,6 +568,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 					if (minDistance > currentDistance && currentDistance >= 0) {
 						minDistance = currentDistance;
 						minFace[0] = currentFace;
+						hitPoint = point;
 					}
 				}
 				else if (rayTriangleIntersection(origin, dest, oppositeFace, uvw)) {
@@ -540,24 +580,17 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 					if (minDistance > currentDistance && currentDistance >= 0) {
 						minDistance = currentDistance;
 						minFace[0] = currentFace;
+						hitPoint = point;
 					}
 				}
 			}
 		}
 	}
-
 	//In case ray hits nothing
-	if (minFace.empty()) {
-		return Eigen::Vector3f(1.0, 1.0, 1.0);
+	if (hitPoint == dest) {
+		minFace.clear();
 	}
-	rayLength = minDistance;
+	
+	return { hitPoint, minFace };
 
-	//Gets the colour of the material of the hit face
-	int matId = minFace[0].material_id;
-	Tucano::Material::Mtl mat = materials[matId];
-	Eigen::Vector3f color = mat.getDiffuse();
-	return color;
 }
-
-
-

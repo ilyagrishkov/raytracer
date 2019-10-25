@@ -27,6 +27,8 @@ static int rayBoxIntersections = 0;
 
 static float RAYLENGTH = 10.0;
 static const int MAX_DEPTH = 5;
+static const int MAX_BOUNCES = 1;
+static const Eigen::Vector3f NO_HIT_COLOR = { 1.0, 1.0, 1.0 };
 
 struct vectorTwo {
 	float x;
@@ -125,7 +127,20 @@ struct vectorThree {
 		return out;
 	}
 
+	vectorThree operator/ (float other) const {
+		vectorThree out;
+		out.x = x / other;
+		out.y = y / other;
+		out.z = z / other;
+		return out;
+	}
 
+	bool operator== (vectorThree other) {
+		if (x == other.x && y == other.y && z == other.z) {
+			return true;
+		}
+		return false;
+	}
 
 	float dot(vectorThree other) {
 		float result = 0;
@@ -199,6 +214,13 @@ public:
 	float getZ() { return (zMax - zMin); }
 };
 
+struct Triangle {
+	vectorThree hitPoint;
+	std::vector<face> hitFace;
+
+	Triangle(vectorThree hitPoint, std::vector<face> hitFace) : hitPoint(hitPoint), hitFace(hitFace) {};
+
+};
 
 class Flyscene {
 
@@ -253,9 +275,9 @@ public:
    * @param dest Other point on the ray, usually screen coordinates
    * @return a RGB color
    */
+  Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<BoundingBox> &boxes, int bounces, float& lengthRay = RAYLENGTH);
 
-  Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<BoundingBox> &boxes, float &lengthRay=RAYLENGTH);
-
+  Triangle traceRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes);
   
 private:
   // A simple phong shader for rendering meshes
