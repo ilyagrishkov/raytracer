@@ -428,7 +428,6 @@ void Flyscene::raytraceScene(int width, int height) {
 
   // origin of the ray is always the camera center
   Eigen::Vector3f origin = flycamera.getCenter();
-  origin[2] = -2;
   Eigen::Vector3f screen_coords;
 
   vectorThree myOrigin = vectorThree::toVectorThree(origin);
@@ -441,7 +440,9 @@ void Flyscene::raytraceScene(int width, int height) {
 #pragma omp parallel for schedule(dynamic, 1) num_threads(10)
 
   //Traces ray for every pixel on the screen in parallel
+
   std::cout << "Origin [X: " << myOrigin.x << ", Y: " << myOrigin.y << ", Z: " << myOrigin.z << "]" << std::endl;
+
   for (int j = 0; j < image_size[1]; ++j) {
 
 	//================ Progress bar ======================
@@ -466,7 +467,6 @@ void Flyscene::raytraceScene(int width, int height) {
 
 			screen_coords = flycamera.screenToWorld(Eigen::Vector2f(i, j));
 			myScreen_coords = vectorThree::toVectorThree(screen_coords);
-
 		}
 
 		pixel_data[i][j] = traceRay(myOrigin, myScreen_coords, boxes);
@@ -503,14 +503,22 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 	std::vector<face> minFace;
 	float currentDistance;
 	float minDistance = FLT_MAX;
-	//Loops through all boxes
+  vectorThree rayDirection = dest - origin;
+	rayDirection.x *= 5.0;
+	rayDirection.y *= 5.0;
+	rayDirection.z *= 5.0;
+	dest = rayDirection + origin;
+  
 	for (const BoundingBox &currentBox : boxes) {
 		//If ray hits a box
 		if (rayBoxIntersection(currentBox, origin, dest)) {
 			std::vector<face> checkFaces;
 			intersectingChildren(currentBox, origin, dest, checkFaces);
 			for (const face &currentFace : checkFaces) {
-				//If it hits a face in that box			
+				//If it hits a face in that box	
+        face oppositeFace = currentFace;
+				std::swap<vectorThree>(oppositeFace.vertex1, oppositeFace.vertex2);
+        
 				if (rayTriangleIntersection(origin, dest, currentFace, uvw)) {
 					minFace.resize(1);
 					//This is the point it hits the triangle
@@ -521,6 +529,16 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 					if (minDistance > currentDistance && currentDistance >= 0) {
 						minDistance = currentDistance;
 						minFace[0] = currentFace;
+					}
+				}
+				else if (triangleIntersectionCheck2(origin, dest, oppositeFace, uvw)) {
+					point = (oppositeFace.vertex1 * uvw.x) + (oppositeFace.vertex2 * uvw.y) + (oppositeFace.vertex3 * uvw.z);
+
+					currentDistance = (point - origin).length();
+					//Calculates closest triangle
+					if (minDistance > currentDistance && currentDistance >= 0) {
+						minDistance = currentDistance;
+						minFace = &currentFace;
 					}
 				}
 			}
