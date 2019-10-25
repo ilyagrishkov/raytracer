@@ -270,6 +270,29 @@ std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh& mesh) {
 
 
 //===========================================================================
+//========================== Helper Functions ===============================
+//===========================================================================
+
+float getDiff(const vector<Eigen::Vector3f>& lights, const Eigen::Affine3f& modelMatrix, const face& currentFace, const vectorThree& point) {
+
+  Eigen::Vector3f light_pos_e = lights.at(lights.size() - 1);
+
+  Eigen::Vector3f point_e = Eigen::Vector3f(point.x, point.y, point.z);
+
+  Eigen::Vector3f light_dir = light_pos_e - point_e;
+  light_dir.normalize();
+
+  vectorThree normal_vt = currentFace.normal;
+  Eigen::Vector4f normal_e_w = modelMatrix * Eigen::Vector4f(normal_vt.x, normal_vt.y, normal_vt.z, 1.0f);
+
+  Eigen::Vector3f normal = Eigen::Vector3f(normal_e_w.x(), normal_e_w.y(), normal_e_w.z());
+  normal.normalize();
+
+  return std::max(normal.dot(light_dir), 0.0f);
+}
+
+//===========================================================================
+
 
 void Flyscene::initialize(int width, int height) {
   // initiliaze the Phong Shading effect for the Opengl Previewer
@@ -501,6 +524,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 
 	vectorThree uvw, point;
 	std::vector<face> minFace;
+  std::vector<vectorThree> minPoint;
 	float currentDistance;
 	float minDistance = FLT_MAX;
   vectorThree rayDirection = dest - origin;
@@ -508,6 +532,9 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 	rayDirection.y *= 5.0;
 	rayDirection.z *= 5.0;
 	dest = rayDirection + origin;
+
+  Eigen::Vector3f light_dir_e;
+  float diff_dot;
   
 	for (const BoundingBox &currentBox : boxes) {
 		//If ray hits a box
@@ -521,6 +548,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
         
 				if (rayTriangleIntersection(origin, dest, currentFace, uvw)) {
 					minFace.resize(1);
+          minPoint.resize(1);
 					//This is the point it hits the triangle
 					point = (currentFace.vertex1 * uvw.x) + (currentFace.vertex2 * uvw.y) + (currentFace.vertex3 * uvw.z);
 
@@ -529,10 +557,12 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 					if (minDistance > currentDistance && currentDistance >= 0) {
 						minDistance = currentDistance;
 						minFace[0] = currentFace;
+            minPoint[0] = point;
 					}
 				}
 				else if (rayTriangleIntersection(origin, dest, oppositeFace, uvw)) {
           minFace.resize(1);
+          minPoint.resize(1);
 					point = (oppositeFace.vertex1 * uvw.x) + (oppositeFace.vertex2 * uvw.y) + (oppositeFace.vertex3 * uvw.z);
 
 					currentDistance = (point - origin).length();
@@ -540,6 +570,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 					if (minDistance > currentDistance && currentDistance >= 0) {
 						minDistance = currentDistance;
 						minFace[0] = currentFace;
+            minPoint[0] = point;
 					}
 				}
 			}
@@ -555,7 +586,11 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 	//Gets the colour of the material of the hit face
 	int matId = minFace[0].material_id;
 	Tucano::Material::Mtl mat = materials[matId];
-	Eigen::Vector3f color = mat.getDiffuse();
+  Eigen::Vector3f ka = mat.getAmbient();
+	Eigen::Vector3f kd = mat.getDiffuse();
+  float diff = getDiff(lights, mesh.getModelMatrix(), minFace[0], minPoint[0]);
+
+  Eigen::Vector3f color = ka + (diff * kd);
 	return color;
 }
 
