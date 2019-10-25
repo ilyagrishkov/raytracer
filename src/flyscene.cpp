@@ -481,7 +481,7 @@ void Flyscene::raytraceScene(int width, int height) {
   std::vector<BoundingBox> boxes = createBoundingBoxes(mesh);
 
 
-#pragma omp parallel for if(openMP)
+#pragma omp parallel for
 
   // DO NOT PUT ANYTHING BETWEEN THESE TWO LINES. PLEASE.
 
