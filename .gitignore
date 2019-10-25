@@ -12,3 +12,5 @@ raytracing.vcxproj.filters
 raytracing.vcxproj.user
 
 /x64/Debug/
+
+result.ppm

@@ -16,6 +16,13 @@
 #include <tucano/utils/mtlIO.hpp>
 #include <tucano/utils/objimporter.hpp>
 #include <float.h>
+#include <chrono>
+#include <algorithm>
+
+static int rayTriangleChecks = 0;
+static int rayBoxChecks = 0;
+static int rayTriangleIntersections = 0;
+static int rayBoxIntersections = 0;
 
 
 static float RAYLENGTH = 10.0;
@@ -174,17 +181,20 @@ struct face {
 	int material_id;
 };
 
-struct boundingBox {
+
+class BoundingBox {
+public:
+	std::vector<face> faces;
+	std::vector<BoundingBox> children;
 	float xMax;
 	float xMin;
 	float yMax;
 	float yMin;
 	float zMax;
 	float zMin;
-	std::vector<boundingBox> children;
-	std::vector<face> faces;
 
-	boundingBox() {
+
+	BoundingBox(void) {
 		xMax = -FLT_MAX;
 		xMin = FLT_MAX;
 		yMax = -FLT_MAX;
@@ -192,6 +202,16 @@ struct boundingBox {
 		zMax = -FLT_MAX;
 		zMin = FLT_MAX;
 	}
+
+	void addChild(BoundingBox& newchild) { children.push_back(newchild); }
+
+	float getVolume() { return ((xMax - xMin) * (yMax - yMin) * (zMax - zMin)); }
+
+	float getX() { return (xMax - xMin); }
+
+	float getY() { return (yMax - yMin); }
+
+	float getZ() { return (zMax - zMin); }
 };
 
 struct Triangle {
@@ -205,6 +225,8 @@ struct Triangle {
 class Flyscene {
 
 public:
+
+
   Flyscene(void) {}
 
   /**
