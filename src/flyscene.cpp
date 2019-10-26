@@ -502,46 +502,6 @@ void Flyscene::raytraceScene(int width, int height) {
   // DO NOT PUT ANYTHING BETWEEN THESE TWO LINES. PLEASE.
 
   for (int j = 0; j < image_size[1]; ++j) {
-
-	std::cout << j << std::endl;
-
-	/*
-	//================ Progress bar ======================
-	float progress = j/float(image_size[1] - 1);
-	int barWidth = 70;
-	std::cout << "[";
-	int pos = barWidth * progress;
-	for (int i = 0; i < barWidth; ++i) {
-		if (i < pos) std::cout << "=";
-		else if (i == pos) std::cout << ">";
-		else std::cout << " ";}
-	std::cout << "] " << int(progress * 100.0) << " %\r";    
-	std::cout.flush();
-	//====================================================
-
-
-
-	inline Eigen::Vector3f screenToWorld (const Eigen::Vector2f& raster_coords)
-	{
-		// transform from raster coords to [-1,+1]
-		// z coordinate is -1.0 since image plane is 1 unit away and camera is facing -z direction
-		Eigen::Vector3f norm_coords = Eigen::Vector3f(
-									2.0*(raster_coords[0] - viewport[0]) / viewport[2] - 1.0,
-									1.0 - 2.0*(raster_coords[1] - viewport[1]) / viewport[3],
-									-1.0);
-
-		// transform to camera space
-		float scale = 1.0/getPerspectiveScale();
-		norm_coords[0] *= aspect_ratio * scale;
-		norm_coords[1] *= scale;
-
-		// transform to world space
-		Eigen::Vector3f world_coords = getViewMatrix().inverse() * norm_coords;
-
-		return world_coords;
-	}
-
-	*/
 		
 	for (int i = 0; i < image_size[0]; ++i) {
 
