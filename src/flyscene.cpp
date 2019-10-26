@@ -515,8 +515,8 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 
 	for (Eigen::Vector3f lightEigen : lights) {			//Loop over every lightsource
 		vectorThree light = vectorThree::toVectorThree(lightEigen);
-
-		Triangle shadowRay = traceRay(hitPoint, light, boxes);
+		vectorThree hitPointBias = hitPoint + (hitFace[0].normal * 0.00001);
+		Triangle shadowRay = traceRay(hitPointBias, light, boxes);
 		if (!shadowRay.hitFace.empty()) {				//If a face was hit, continue because it's in the shadow	
 			continue;
 		}
