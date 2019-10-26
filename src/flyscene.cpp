@@ -274,10 +274,9 @@ std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh& mesh) {
 //===========================================================================
 
 
-Eigen::Vector3f calculateColor(const Tucano::Material::Mtl& mat, const vector<Eigen::Vector3f>& lights, 
+Eigen::Vector3f calculateColor(const Tucano::Material::Mtl& mat, const Eigen::Vector3f& lights, 
   const Tucano::Flycamera& flycamera, const face& currentFace, const vectorThree& point) {
 
-  Eigen::Vector3f ka = mat.getAmbient();
   Eigen::Vector3f kd = mat.getDiffuse();
   Eigen::Vector3f ks = mat.getSpecular();
   float shininess = mat.getShininess();
@@ -285,7 +284,7 @@ Eigen::Vector3f calculateColor(const Tucano::Material::Mtl& mat, const vector<Ei
   vectorThree normal = currentFace.normal;
   normal = normal.normalize();
 
-  vectorThree light_pos = vectorThree::toVectorThree(lights.at(lights.size() - 1));
+  vectorThree light_pos = vectorThree::toVectorThree(lights);
 
   vectorThree light_dir = light_pos - point;
   light_dir = light_dir.normalize();
@@ -310,7 +309,7 @@ Eigen::Vector3f calculateColor(const Tucano::Material::Mtl& mat, const vector<Ei
 
   float spec = std::pow(spec_temp, shininess);
 
-  return ka + diff * kd + spec * ks;
+  return diff * kd + spec * ks;
 }
 
 //===========================================================================
@@ -573,7 +572,11 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 	}
 	int matId = hitFace[0].material_id;				
 	Tucano::Material::Mtl mat = materials[matId];
-	color = calculateColor(mat, lights, flycamera, hitFace[0], hitPoint);
+	for (int i = 0; i < lights.size(); i++)
+	{
+		color = color + calculateColor(mat, lights.at(i), flycamera, hitFace[0], hitPoint);
+	}
+	color = color + mat.getAmbient();
 	return color;
 }
 
