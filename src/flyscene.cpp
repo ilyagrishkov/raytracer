@@ -575,7 +575,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 	for (Eigen::Vector3f light : lights)
 	{
 		shadowLight = vectorThree::toVectorThree(light);
-		hitPointBias = hitPoint + (hitFace[0].normal * 0.000001);
+		hitPointBias = hitPoint + (hitFace[0].normal * 0.008);
 		Triangle shadowRay = traceRay(hitPointBias, shadowLight, boxes);
 
 		if (shadowRay.hitFace.empty()) {							
@@ -598,8 +598,6 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 	rayDirection.z *= 5.0;
 	dest = rayDirection + origin;
 
-  Eigen::Vector3f light_dir_e;
-  float diff_dot;
   
 	for (const BoundingBox &currentBox : boxes) {
 		//If ray hits a box
