@@ -550,10 +550,6 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 		return NO_HIT_COLOR;
 	}
 
-	//Start hard shadow
-	Eigen::Vector3f color = { 0.0, 0.0, 0.0 };
-
-
 	if (bounces < MAX_BOUNCES) {
 		vectorThree direction = (hitPoint - origin) / direction.length();
 
@@ -569,11 +565,23 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 
 		//Do something with this reflection
 	}
+	
+	Eigen::Vector3f color = { 0.0, 0.0, 0.0 };
+
 	int matId = hitFace[0].material_id;				
 	Tucano::Material::Mtl mat = materials[matId];
-	for (int i = 0; i < lights.size(); i++)
+	vectorThree shadowLight;
+	vectorThree hitPointBias;
+	for (Eigen::Vector3f light : lights)
 	{
-		color = color + calculateColor(mat, lights.at(i), flycamera, hitFace[0], hitPoint);
+		shadowLight = vectorThree::toVectorThree(light);
+		hitPointBias = hitPoint + (hitFace[0].normal * 0.008);
+		Triangle shadowRay = traceRay(hitPointBias, shadowLight, boxes);
+
+		if (shadowRay.hitFace.empty()) {							
+			color = color + calculateColor(mat, light, flycamera, hitFace[0], hitPoint);
+		}
+		
 	}
 	color = color + mat.getAmbient();
 	return color;
@@ -590,8 +598,6 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 	rayDirection.z *= 5.0;
 	dest = rayDirection + origin;
 
-  Eigen::Vector3f light_dir_e;
-  float diff_dot;
   
 	for (const BoundingBox &currentBox : boxes) {
 		//If ray hits a box
@@ -604,25 +610,25 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 				std::swap<vectorThree>(oppositeFace.vertex1, oppositeFace.vertex2);
         
 				if (rayTriangleIntersection(origin, dest, currentFace, uvw)) {
-					minFace.resize(1);
 					//This is the point it hits the triangle
 					point = (currentFace.vertex1 * uvw.x) + (currentFace.vertex2 * uvw.y) + (currentFace.vertex3 * uvw.z);
 
 					currentDistance = (point - origin).length();
 					//Calculates closest triangle
-					if (minDistance > currentDistance && currentDistance >= 0) {
+					if (minDistance > currentDistance && currentDistance > 0.0001) {
+						minFace.resize(1);
 						minDistance = currentDistance;
 						minFace[0] = currentFace;
 						hitPoint = point;
 					}
 				}
 				else if (rayTriangleIntersection(origin, dest, oppositeFace, uvw)) {
-					minFace.resize(1);
 					point = (oppositeFace.vertex1 * uvw.x) + (oppositeFace.vertex2 * uvw.y) + (oppositeFace.vertex3 * uvw.z);
 
 					currentDistance = (point - origin).length();
 					//Calculates closest triangle
-					if (minDistance > currentDistance && currentDistance >= 0) {
+					if (minDistance > currentDistance && currentDistance > 0.0001) {
+						minFace.resize(1);
 						minDistance = currentDistance;
 						minFace[0] = currentFace;
 						hitPoint = point;
