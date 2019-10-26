@@ -24,6 +24,8 @@ BoundingBox createBox(const std::vector<face>& mesh) {
 
   BoundingBox currentBox;
 
+  std::cout << "splitting box" << std::endl;
+
   for (int i = 0; i < mesh.size(); i++) {
 
     face currentFace = mesh[i];
@@ -78,6 +80,9 @@ bool sorterZ(face i, face j) {
 BoundingBox splitBox(BoundingBox& rootBox, int faceNum) {
 
   std::vector<face> faces = rootBox.faces;
+
+  //std::cout << "splitting box" << std::endl;
+
   if (faces.size() > faceNum) {
 
     float x = rootBox.getX();
@@ -260,7 +265,7 @@ std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh& mesh) {
   std::vector<BoundingBox> boxes;
 
   BoundingBox currentBox = createBox(myMesh);
-  splitBox(currentBox, 10);
+  splitBox(currentBox, 1000);
 
   //printNodes(currentBox);
   boxes.push_back(currentBox);
@@ -326,7 +331,7 @@ void Flyscene::initialize(int width, int height) {
 
   // load the OBJ file and materials
   Tucano::MeshImporter::loadObjFile(mesh, materials,
-									"resources/models/dodgeColorTest.obj");
+									"resources/models/mirrorTest.obj");
 
 
   // normalize the model (scale to unit cube and center at origin)
@@ -344,7 +349,7 @@ void Flyscene::initialize(int width, int height) {
   lightrep.setSize(0.15);
 
   // create a first ray-tracing light source at some random position
-  lights.push_back(Eigen::Vector3f(-1.0, 1.0, 1.0));
+  lights.push_back(Eigen::Vector3f(-1.0, 1.0, -3.0));
 
   // scale the camera representation (frustum) for the ray debug
   camerarep.shapeMatrix()->scale(0.2);
@@ -454,6 +459,7 @@ void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
 	camerarep.setModelMatrix(flycamera.getViewMatrix().inverse());
 }
 
+
 void Flyscene::raytraceScene(int width, int height) {
   auto t1 = std::chrono::high_resolution_clock::now();
   std::cout << "ray tracing ..." << std::endl;
@@ -463,6 +469,15 @@ void Flyscene::raytraceScene(int width, int height) {
   if (width == 0 || height == 0) {
     image_size = flycamera.getViewportSize();
   }
+
+  Eigen::Vector4f tempViewPort = flycamera.getViewport();
+
+  vectorFour viewport = {tempViewPort[0] , tempViewPort[1] , tempViewPort[2] , tempViewPort[3]};
+
+  Eigen::Matrix4f matrix = flycamera.getViewMatrix().inverse().matrix();
+  vectorThree row1 = {matrix(0, 0), matrix(0, 1), matrix(0, 2) };
+  vectorThree row2 = { matrix(1, 0), matrix(1, 1), matrix(1, 2) };
+  vectorThree row3 = { matrix(2, 0), matrix(2, 1), matrix(2, 2) };
 
   // create 2d vector to hold pixel colors and resize to match image size
   vector<vector<Eigen::Vector3f>> pixel_data;
@@ -479,7 +494,7 @@ void Flyscene::raytraceScene(int width, int height) {
  //for every pixel shoot a ray from the origin through the pixel coords
 
   std::vector<BoundingBox> boxes = createBoundingBoxes(mesh);
-
+  
 
 #pragma omp parallel for schedule(dynamic, 1)
 
@@ -503,20 +518,48 @@ void Flyscene::raytraceScene(int width, int height) {
 	std::cout.flush();
 	//====================================================
 
+
+
+	inline Eigen::Vector3f screenToWorld (const Eigen::Vector2f& raster_coords)
+	{
+		// transform from raster coords to [-1,+1]
+		// z coordinate is -1.0 since image plane is 1 unit away and camera is facing -z direction
+		Eigen::Vector3f norm_coords = Eigen::Vector3f(
+									2.0*(raster_coords[0] - viewport[0]) / viewport[2] - 1.0,
+									1.0 - 2.0*(raster_coords[1] - viewport[1]) / viewport[3],
+									-1.0);
+
+		// transform to camera space
+		float scale = 1.0/getPerspectiveScale();
+		norm_coords[0] *= aspect_ratio * scale;
+		norm_coords[1] *= scale;
+
+		// transform to world space
+		Eigen::Vector3f world_coords = getViewMatrix().inverse() * norm_coords;
+
+		return world_coords;
+	}
+
 	*/
 		
 	for (int i = 0; i < image_size[0]; ++i) {
 
 		vectorThree myScreen_coords;
 
-		#pragma omp critical
-		{
+		vectorTwo v2 = { i, j };
 
-		screen_coords = flycamera.screenToWorld(Eigen::Vector2f(i, j));
-		myScreen_coords = vectorThree::toVectorThree(screen_coords);
+		vectorThree norm_coords = {
+		2.0 * (v2.x - viewport.x) / viewport.z - 1.0,
+		1.0 - 2.0 * (v2.y - viewport.y) / viewport.w,
+		-1.0 };
+     
+		float scale = 1.0 / flycamera.getPerspectiveScale();
+		norm_coords.x *= flycamera.getViewportAspectRatio() * scale;
+		norm_coords.y *= scale;
 
-		}
-
+		myScreen_coords.x = row1.dot(norm_coords);
+		myScreen_coords.y = row2.dot(norm_coords);
+		myScreen_coords.z = row3.dot(norm_coords);
 
 		Eigen::Vector3f temp = traceRay(myOrigin, myScreen_coords, boxes, 0);
 		if (temp[1] == -1) {
@@ -547,6 +590,8 @@ void Flyscene::raytraceScene(int width, int height) {
   Tucano::ImageImporter::writePPMImage("result.ppm", pixel_data);
   std::cout << "ray tracing done! " << std::endl;
 }
+
+
 
 // Traces ray
 Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
