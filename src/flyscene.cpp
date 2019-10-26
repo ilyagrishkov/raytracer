@@ -475,9 +475,10 @@ void Flyscene::raytraceScene(int width, int height) {
   vectorFour viewport = {tempViewPort[0] , tempViewPort[1] , tempViewPort[2] , tempViewPort[3]};
 
   Eigen::Matrix4f matrix = flycamera.getViewMatrix().inverse().matrix();
-  vectorThree row1 = {matrix(0, 0), matrix(0, 1), matrix(0, 2) };
-  vectorThree row2 = { matrix(1, 0), matrix(1, 1), matrix(1, 2) };
-  vectorThree row3 = { matrix(2, 0), matrix(2, 1), matrix(2, 2) };
+  vectorFour row1 = {matrix(0, 0), matrix(0, 1), matrix(0, 2), matrix(0, 3) };
+  vectorFour row2 = { matrix(1, 0), matrix(1, 1), matrix(1, 2), matrix(1, 3) };
+  vectorFour row3 = { matrix(2, 0), matrix(2, 1), matrix(2, 2), matrix(2, 3) };
+  vectorFour row4 = { matrix(3, 0), matrix(3, 1), matrix(3, 2), matrix(3, 3) };
 
   // create 2d vector to hold pixel colors and resize to match image size
   vector<vector<Eigen::Vector3f>> pixel_data;
@@ -548,10 +549,10 @@ void Flyscene::raytraceScene(int width, int height) {
 
 		vectorTwo v2 = { i, j };
 
-		vectorThree norm_coords = {
+		vectorFour norm_coords = {
 		2.0 * (v2.x - viewport.x) / viewport.z - 1.0,
 		1.0 - 2.0 * (v2.y - viewport.y) / viewport.w,
-		-1.0 };
+		-1.0 , 1.0};
      
 		float scale = 1.0 / flycamera.getPerspectiveScale();
 		norm_coords.x *= flycamera.getViewportAspectRatio() * scale;

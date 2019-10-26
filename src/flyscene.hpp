@@ -36,6 +36,16 @@ struct vectorFour {
 	float y;
 	float z;
 	float w;
+
+	float dot(vectorFour other) {
+		float result = 0;
+		result += x * other.x;
+		result += y * other.y;
+		result += z * other.z;
+		result += w * other.w;
+		return result;
+	}
+
 };
 
 struct vectorTwo {
