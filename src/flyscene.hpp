@@ -201,7 +201,10 @@ struct vectorThree {
 		vectorThree out = { old(0), old(1), old(2) };
 		return out;
 	}
-
+	static Eigen::Vector3f toEigenVector3(vectorThree old) {
+		Eigen::Vector3f out = Eigen::Vector3f( old.x, old.y, old.z );
+		return out;
+	}
 };
 
 struct face {
@@ -336,7 +339,7 @@ private:
   Tucano::Camera scene_light;
 
   /// A very thin cylinder to draw a debug ray
-  Tucano::Shapes::Cylinder ray = Tucano::Shapes::Cylinder(0.1, 1.0, 16, 64);
+  Tucano::Shapes::Cylinder ray[15];
 
   // Scene meshes
   Tucano::Mesh mesh;

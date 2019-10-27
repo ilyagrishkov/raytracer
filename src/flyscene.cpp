@@ -354,10 +354,12 @@ void Flyscene::initialize(int width, int height) {
   camerarep.shapeMatrix()->scale(0.2);
 
   // the debug ray is a cylinder, set the radius and length of the cylinder
-  ray.setSize(0.005, 10.0);
+  for (int i = 0; i < 15; i++) {
+	  ray[i] = Tucano::Shapes::Cylinder(0.01, 0.0);
+  }
 
   // craete a first debug ray pointing at the center of the screen
-  createDebugRay(Eigen::Vector2f(width / 2.0, height / 2.0));
+  //createDebugRay(Eigen::Vector2f(width / 2.0, height / 2.0));
 
   glEnable(GL_DEPTH_TEST);
 
@@ -394,7 +396,10 @@ void Flyscene::paintGL(void) {
   phong.render(mesh, flycamera, scene_light);
 
   // render the ray and camera representation for ray debug
-  ray.render(flycamera, scene_light);
+  for (int i = 0; i < 15; i++) {
+	  if(ray[i].getHeight() > 0.1)
+		ray[i].render(flycamera, scene_light);
+  }
   camerarep.render(flycamera, scene_light);
 
   // render ray tracing light sources as yellow spheres
@@ -428,8 +433,13 @@ void Flyscene::simulate(GLFWwindow *window) {
 }
 
 void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
+	for (int i = 0; i < 15; i++) {
+		ray[i].resetModelMatrix();
+		ray[i] = Tucano::Shapes::Cylinder(0.01, 0.0);
+	}
+
 	float rayLength = RAYLENGTH;
-	ray.resetModelMatrix();
+	ray[0].resetModelMatrix();
 
 	// from pixel position to world coordinates
 	Eigen::Vector3f screen_pos = flycamera.screenToWorld(mouse_pos);
@@ -438,20 +448,46 @@ void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
 	Eigen::Vector3f dir = (screen_pos - flycamera.getCenter()).normalized();
 
 	// position and orient the cylinder representing the ray
-	ray.setOriginOrientation(flycamera.getCenter(), dir);
+	ray[0].setOriginOrientation(flycamera.getCenter(), dir);
 
 	vectorThree myOrigin = vectorThree::toVectorThree(flycamera.getCenter());
+	vectorThree myDir = vectorThree::toVectorThree(dir);
 	vectorThree myDestination = vectorThree::toVectorThree(screen_pos);
 
 	std::vector<BoundingBox> boxes = createBoundingBoxes(mesh);
 
-	Eigen::Vector3f colorPoint = traceRay(myOrigin, myDestination, boxes, 0, rayLength);
-	if (colorPoint[1] == -1.0) {
-		colorPoint = NO_HIT_COLOR;
+	Triangle hit = traceRay(myOrigin, myDestination, boxes);
+	if (hit.hitFace.empty()) {
+		ray[0].setSize(ray[0].getRadius(), 200);
 	}
+	else {
+		rayLength = (hit.hitPoint - myOrigin).length();
+		ray[0].setSize(ray[0].getRadius(), rayLength);
+		vectorThree oldHitPoint = hit.hitPoint;
+		vectorThree oldDir = myDir.normalize();
+		for (int i = 1; i < 15; i++) {
+			ray[i].resetModelMatrix();
 
-	ray.setSize(ray.getRadius(), rayLength);
-	ray.render(flycamera, scene_light);
+			vectorThree normal = hit.hitFace[0].normal.normalize();
+			vectorThree refVector = (oldDir - normal * (normal.dot(oldDir)) * 2).normalize();
+			vectorThree sum = oldHitPoint + refVector * 10000;
+
+			hit = traceRay(oldHitPoint, sum, boxes);
+			if (hit.hitFace.empty()) {
+				ray[i].setSize(ray[i].getRadius(), 200);
+				ray[i].setOriginOrientation(vectorThree::toEigenVector3(oldHitPoint), vectorThree::toEigenVector3(refVector));
+				break;
+			}
+			else {
+				rayLength = (oldHitPoint - hit.hitPoint).length();
+				ray[i].setSize(ray[i].getRadius(), rayLength);
+				ray[i].setOriginOrientation(vectorThree::toEigenVector3(oldHitPoint), vectorThree::toEigenVector3(refVector));
+
+				oldHitPoint = hit.hitPoint;
+				oldDir = refVector.normalize();
+			}
+		}
+	}
 
 	// place the camera representation (frustum) on current camera location, 
 	camerarep.resetModelMatrix();
@@ -578,7 +614,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 
 		vectorThree normal = hitFace[0].normal / normal.length();
 
-		vectorThree refVector = direction - normal*(normal.dot(direction));
+		vectorThree refVector = direction - normal*(normal.dot(direction)*2);
 
 		vectorThree dest = hitPoint + refVector * 10000;
 
@@ -629,7 +665,7 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 			intersectingChildren(currentBox, origin, dest, checkFaces);
 			for (const face &currentFace : checkFaces) {
 				//If it hits a face in that box	
-        face oppositeFace = currentFace;
+				face oppositeFace = currentFace;
 				std::swap<vectorThree>(oppositeFace.vertex1, oppositeFace.vertex2);
         
 				if (rayTriangleIntersection(origin, dest, currentFace, uvw)) {
@@ -663,7 +699,7 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 	}
 	//In case ray hits nothing
 	if (hitPoint == dest) {
-		minFace.clear();
+		minFace.resize(0);
 	}
   
 	return { hitPoint, minFace };
