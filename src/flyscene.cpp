@@ -595,14 +595,31 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 	Tucano::Material::Mtl mat = materials[matId];
 	vectorThree shadowLight;
 	vectorThree hitPointBias;
+	Eigen::Vector3f softval = { 1/4, 1/4, 1/4 };
+	Eigen::Vector3f shadowpoint = { 0.0, 0.0, 0.0 };
+	vectorThree shadowPoint = vectorThree::toVectorThree(shadowpoint);
 	for (Eigen::Vector3f light : lights)
 	{
 		shadowLight = vectorThree::toVectorThree(light);
 		hitPointBias = hitPoint + (hitFace[0].normal * 0.008);
-		Triangle shadowRay = traceRay(hitPointBias, shadowLight, boxes);
-
-		if (shadowRay.hitFace.empty()) {							
+		Triangle shadowRay = traceRay(hitPointBias, shadowLight, boxes); 
+		if (shadowRay.hitFace.empty()) {
 			color = color + calculateColor(mat, light, flycamera, hitFace[0], hitPoint);
+		}
+		vectorThree normal = (shadowLight - hitPoint).normalize();
+		vectorThree normala = shadowLight.cross(normal);
+		vectorThree normalb = normalb.cross(shadowLight);
+		for (int i = 0; i < 4; i++)
+		{
+			shadowPoint = shadowLight + normala * (.15 * (cos((2 * M_PI) / i))) + normalb * (.15 * (sin((2 * M_PI) / i)));
+			Triangle shadowRay = traceRay(hitPointBias, shadowPoint, boxes);
+			if (shadowRay.hitFace.empty()) 
+			{
+			}
+			else
+			{
+				color = color + softval;
+			}
 		}
 		
 	}
