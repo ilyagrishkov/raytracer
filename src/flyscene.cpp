@@ -265,7 +265,7 @@ std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh& mesh) {
   std::vector<BoundingBox> boxes;
 
   BoundingBox currentBox = createBox(myMesh);
-  splitBox(currentBox, 1000);
+  splitBox(currentBox, 100);
 
   //printNodes(currentBox);
   boxes.push_back(currentBox);
@@ -330,7 +330,7 @@ void Flyscene::initialize(int width, int height) {
 
   // load the OBJ file and materials
   Tucano::MeshImporter::loadObjFile(mesh, materials,
-									"resources/models/mirrorTest.obj");
+									"resources/models/dodgeColorTest.obj");
 
 
   // normalize the model (scale to unit cube and center at origin)
@@ -348,7 +348,7 @@ void Flyscene::initialize(int width, int height) {
   lightrep.setSize(0.15);
 
   // create a first ray-tracing light source at some random position
-  lights.push_back(Eigen::Vector3f(-1.0, 1.0, -3.0));
+  lights.push_back(Eigen::Vector3f(-1.0, 1.0, 1.0));
 
   // scale the camera representation (frustum) for the ray debug
   camerarep.shapeMatrix()->scale(0.2);
@@ -495,11 +495,18 @@ void Flyscene::raytraceScene(int width, int height) {
 
   std::vector<BoundingBox> boxes = createBoundingBoxes(mesh);
 
-#pragma omp parallel for schedule(dynamic, 1)
+#pragma omp parallel for schedule(dynamic, 1) num_threads(10)
 
   // DO NOT PUT ANYTHING BETWEEN THESE TWO LINES. PLEASE.
 
   for (int j = 0; j < image_size[1]; ++j) {
+
+	  if (j % 10 == 0) {
+		  std::cout << j << std::endl;
+	  }
+
+	  // The progress bar wasn't working for the threaded version, so I removed it.
+	  // I do think we should have something more elegant than the counter above, but we can work on that when the essentials are done.
 		
 	for (int i = 0; i < image_size[0]; ++i) {
 
