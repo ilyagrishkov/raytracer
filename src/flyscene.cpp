@@ -600,8 +600,10 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree& origin,
 	vectorThree hitPointBias;
 	Eigen::Vector3f shadowpoint = { 0.0, 0.0, 0.0 };
 	Eigen::Vector3f _crosser = { 0, 0, 1 };
+	Eigen::Vector3f softVal = { 0.125, 0.125, 0.125 };
 	vectorThree shadowPoint = vectorThree::toVectorThree(shadowpoint);
 	vectorThree crosser = vectorThree::toVectorThree(_crosser);
+	int reductionfactor = 0;
 	for (Eigen::Vector3f light : lights)
 	{
 		shadowLight = vectorThree::toVectorThree(light);
@@ -644,12 +646,13 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree& origin,
 				Triangle sShadowRay = traceRay(hitPointBias, sShadowPoint, boxes);
 				if (!sShadowRay.hitFace.empty())
 				{
-					color = color - Eigen::Vector3f{1 / 8, 1 / 8, 1 / 8};
+					reductionfactor++;
 				}
 		}
 	}
 	color = color + mat.getAmbient();
-	return color;
+	softVal = softVal * reductionfactor;
+	return color - softVal;
 }
 
 Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes) {
