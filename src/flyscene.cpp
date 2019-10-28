@@ -614,8 +614,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree& origin,
 	vectorThree shadowLight;
 	vectorThree hitPointBias;
 	float brightness = 0;
-	Eigen::Vector3f softval = { 1/float(SOFT_SHADOW_PRECISION), 1 / float(SOFT_SHADOW_PRECISION), 1 / float(SOFT_SHADOW_PRECISION) };
-
+	
 	for (Eigen::Vector3f light : lights)
 	{
 		shadowLight = vectorThree::toVectorThree(light);
@@ -674,7 +673,7 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 			intersectingChildren(currentBox, origin2, dest2, checkFaces);
 			for (const face &currentFace : checkFaces) {
 				//If it hits a face in that box	
-        face oppositeFace = currentFace;
+				face oppositeFace = currentFace;
 				std::swap<vectorThree>(oppositeFace.vertex1, oppositeFace.vertex2);
         
 				if (rayTriangleIntersection(origin2, dest2, currentFace, uvw)) {
