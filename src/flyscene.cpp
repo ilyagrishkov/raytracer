@@ -598,7 +598,6 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree& origin,
 	Tucano::Material::Mtl mat = materials[matId];
 	vectorThree shadowLight;
 	vectorThree hitPointBias;
-	Eigen::Vector3f softval = { 1 / 8, 1 / 8, 1 / 8 };
 	Eigen::Vector3f shadowpoint = { 0.0, 0.0, 0.0 };
 	Eigen::Vector3f _crosser = { 0, 0, 1 };
 	vectorThree shadowPoint = vectorThree::toVectorThree(shadowpoint);
@@ -608,15 +607,23 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree& origin,
 		shadowLight = vectorThree::toVectorThree(light);
 		hitPointBias = hitPoint + (hitFace[0].normal * 0.008);
 		vectorThree normal = (shadowLight - hitPointBias).normalize();
-		vectorThree normala = normal.cross(crosser);
-		vectorThree normalb = normala.cross(normal);
-		Triangle shadowRay = traceRay(hitPointBias, shadowLight, boxes);
-		if (shadowRay.hitFace.empty()) {
-			color = color + calculateColor(mat, light, flycamera, hitFace[0], hitPoint);
+		vectorThree normala;
+		if (normal.z != 1) {
+			normala = normal.cross(crosser).normalize();
 		}
 		else
 		{
-			for (int i = 1; i < 9; i++)
+			crosser.x = 1;
+			crosser.z = 0;
+			normala = normal.cross(crosser).normalize();
+			Eigen::Vector3f _crosser = { 0, 0, 1 };
+		}
+		vectorThree normalb = normala.cross(normal).normalize();
+		//Triangle shadowRay = traceRay(hitPointBias, shadowLight, boxes);
+		//if (shadowRay.hitFace.empty()) {
+			color = color + calculateColor(mat, light, flycamera, hitFace[0], hitPoint);
+		//}
+		for (int i = 1; i < 9; i++)
 			{
 				float normalis = (cos((M_PI * 2) / i) * .15);
 				float normaliz = (sin((M_PI * 2) / i) * .15);
@@ -634,15 +641,12 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree& origin,
 				sShadowPoint.x = addshadow.x + shadowLight.x;
 				sShadowPoint.y = addshadow.y + shadowLight.y;
 				sShadowPoint.z = addshadow.z + shadowLight.z;
-				Triangle sShadowRay = traceRay(hitPoint, sShadowPoint, boxes);
-				if (sShadowRay.hitFace.empty())
+				Triangle sShadowRay = traceRay(hitPointBias, sShadowPoint, boxes);
+				if (!sShadowRay.hitFace.empty())
 				{
-					std::cout << "Touch";
-					color = color + softval;
+					color = color - Eigen::Vector3f{1 / 8, 1 / 8, 1 / 8};
 				}
-			}
 		}
-		
 	}
 	color = color + mat.getAmbient();
 	return color;
