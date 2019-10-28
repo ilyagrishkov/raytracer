@@ -607,8 +607,8 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree& origin,
 	Tucano::Material::Mtl mat = materials[matId];
 	vectorThree shadowLight;
 	vectorThree hitPointBias;
-	float brightness = 1;
-	Eigen::Vector3f softval = { 1 / 8, 1 / 8, 1 / 8 };
+	float brightness = 0;
+	Eigen::Vector3f softval = { 0.03125, 0.03125, 0.03125 };
 	Eigen::Vector3f shadowpoint = { 0.0, 0.0, 0.0 };
 	Eigen::Vector3f _crosser = { 0, 0, 1 };
 	vectorThree shadowPoint = vectorThree::toVectorThree(shadowpoint);
@@ -630,7 +630,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree& origin,
 		//std::cout << "BIAS: " << hitPointBias.x << ", " << hitPointBias.y << ", " << hitPointBias.z << std::endl;
 
 
-		for (int i = 0; i < 9; i++) {
+		for (int i = 0; i < 33; i++) {
 
 			float diskX = shadowLight.x + radius * cos((M_PI / 4) * i) * a.x + radius * sin((M_PI / 4) * i) * b.x;
 			float diskY = shadowLight.y + radius * cos((M_PI / 4) * i) * a.y + radius * sin((M_PI / 4) * i) * b.y;
@@ -641,16 +641,15 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree& origin,
 			//std::cout << "POINT ON DISK: " << pointOndisk.x << ", " << pointOndisk.y << ", " << pointOndisk.z << std::endl;
 			//std::cout << "BIAS 2: " << hitPointBias.x << ", " << hitPointBias.y << ", " << hitPointBias.z << std::endl;
 			Triangle sShadowRay = traceRay(hitPointBias, pointOndisk, boxes);
-			std::cout << "HIT POINT: " << sShadowRay.hitPoint.x << ", " << sShadowRay.hitPoint.y << ", " << sShadowRay.hitPoint.z << std::endl;
-			std::cout << "EXPECTED: " << pointOndisk.x << ", " << pointOndisk.y << ", " << pointOndisk.z << std::endl;
+			//std::cout << "HIT POINT: " << sShadowRay.hitPoint.x << ", " << sShadowRay.hitPoint.y << ", " << sShadowRay.hitPoint.z << std::endl;
+			//std::cout << "EXPECTED: " << pointOndisk.x << ", " << pointOndisk.y << ", " << pointOndisk.z << std::endl;
 
-			if (!(sShadowRay.hitPoint == pointOndisk)){
-				brightness =- (1 / 8);
+			if (!(sShadowRay.hitFace.empty())){
+				brightness++;
 			}
 		}
 
-		color = brightness * calculateColor(mat, light, flycamera, hitFace[0], hitPoint);
-
+		color = calculateColor(mat, light, flycamera, hitFace[0], hitPoint);
 
 		/**shadowLight = vectorThree::toVectorThree(light);
 		hitPointBias = hitPoint + (hitFace[0].normal * 0.008);
@@ -692,7 +691,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree& origin,
 		
 	}
 	color = color + mat.getAmbient();
-	return color;
+	return color - softval*brightness;
 }
 
 Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes) {
