@@ -1,5 +1,6 @@
 #include "flyscene.hpp"
 #include <GLFW/glfw3.h>
+#include "math.h"
 
 
 //===========================================================================
@@ -456,7 +457,9 @@ void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
 	// place the camera representation (frustum) on current camera location, 
 	camerarep.resetModelMatrix();
 	camerarep.setModelMatrix(flycamera.getViewMatrix().inverse());
-}
+
+	}
+
 
 
 void Flyscene::raytraceScene(int width, int height) {
@@ -595,7 +598,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 	Tucano::Material::Mtl mat = materials[matId];
 	vectorThree shadowLight;
 	vectorThree hitPointBias;
-	Eigen::Vector3f softval = { 1/4, 1/4, 1/4 };
+	Eigen::Vector3f softval = { 1/8, 1/8, 1/8 };
 	Eigen::Vector3f shadowpoint = { 0.0, 0.0, 0.0 };
 	Eigen::Vector3f _crosser = { 0, 0, 1 };
 	vectorThree shadowPoint = vectorThree::toVectorThree(shadowpoint);
@@ -604,26 +607,40 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 	{
 		shadowLight = vectorThree::toVectorThree(light);
 		hitPointBias = hitPoint + (hitFace[0].normal * 0.008);
+		vectorThree normal = (shadowLight - hitPointBias).normalize();
+		vectorThree normala = normal.cross(crosser);
+		vectorThree normalb = normala.cross(normal);
 		Triangle shadowRay = traceRay(hitPointBias, shadowLight, boxes); 
 		if (shadowRay.hitFace.empty()) {
-			color = color + calculateColor(mat, light, flycamera, hitFace[0], hitPoint);
-		}
-		vectorThree normal = (shadowLight - hitPoint).normalize();
-		vectorThree normala = shadowLight.cross(crosser);
-		vectorThree normalb = normalb.cross(normala);
-		for (int i = 0; i < 4; i++)
-		{
-			shadowPoint = shadowLight + normala * (.15 * (cos((2 * M_PI) / i))) + normalb * (.15 * (sin((2 * M_PI) / i)));
-			Triangle shadowRay = traceRay(hitPointBias, shadowPoint, boxes);
-			if (shadowRay.hitFace.empty()) 
+			color = color + calculateColor(mat, light, flycamera, hitFace[0], hitPoint); 
+			for (int i = 1; i < 9; i++)
 			{
-				color = color - softval;
-			}
-			else
-			{
-				color = color + softval;
+				float normalis = (cos((M_PI * 2)/i) * .15);
+				float normaliz = (sin((M_PI * 2)/i) * .15);
+				normala.x = normala.x * normalis;
+				normala.y = normala.y * normalis;
+				normala.z = normala.z * normalis;
+				normalb.x = normalb.x * normaliz;
+				normalb.y = normalb.y * normaliz;
+				normalb.z = normalb.z * normaliz;
+
+				vectorThree addshadow = normala + normalb;
+
+				vectorThree sShadowPoint;
+
+				sShadowPoint.x = addshadow.x + shadowLight.x;
+					sShadowPoint.y = addshadow.y + shadowLight.y;
+					sShadowPoint.z = addshadow.z + shadowLight.z;
+				Triangle sShadowRay = traceRay(hitPoint, sShadowPoint, boxes);
+				if (!sShadowRay.hitFace.empty())
+				{
+					color = color + softval; 
+					vectorThree viewcolor = vectorThree::toVectorThree(color);
+				}
 			}
 		}
+		
+		
 		
 	}
 	color = color + mat.getAmbient();
