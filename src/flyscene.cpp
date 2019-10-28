@@ -563,8 +563,8 @@ void Flyscene::raytraceScene(int width, int height) {
 
 
 // Traces ray
-Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
-                                   vectorThree &dest, std::vector<BoundingBox> &boxes, int bounces, float &rayLength) {
+Eigen::Vector3f Flyscene::traceRay(vectorThree& origin,
+	vectorThree& dest, std::vector<BoundingBox>& boxes, int bounces, float& rayLength) {
 	//Search for hit
 	Triangle lightRay = traceRay(origin, dest, boxes);
 	std::vector<face> hitFace = lightRay.hitFace;
@@ -581,7 +581,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 
 		vectorThree normal = hitFace[0].normal / normal.length();
 
-		vectorThree refVector = direction - normal*(normal.dot(direction));
+		vectorThree refVector = direction - normal * (normal.dot(direction));
 
 		vectorThree dest = hitPoint + refVector * 10000;
 
@@ -591,14 +591,14 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 
 		//Do something with this reflection
 	}
-	
+
 	Eigen::Vector3f color = { 0.0, 0.0, 0.0 };
 
-	int matId = hitFace[0].material_id;				
+	int matId = hitFace[0].material_id;
 	Tucano::Material::Mtl mat = materials[matId];
 	vectorThree shadowLight;
 	vectorThree hitPointBias;
-	Eigen::Vector3f softval = { 1/8, 1/8, 1/8 };
+	Eigen::Vector3f softval = { 1 / 8, 1 / 8, 1 / 8 };
 	Eigen::Vector3f shadowpoint = { 0.0, 0.0, 0.0 };
 	Eigen::Vector3f _crosser = { 0, 0, 1 };
 	vectorThree shadowPoint = vectorThree::toVectorThree(shadowpoint);
@@ -610,13 +610,16 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 		vectorThree normal = (shadowLight - hitPointBias).normalize();
 		vectorThree normala = normal.cross(crosser);
 		vectorThree normalb = normala.cross(normal);
-		Triangle shadowRay = traceRay(hitPointBias, shadowLight, boxes); 
+		Triangle shadowRay = traceRay(hitPointBias, shadowLight, boxes);
 		if (shadowRay.hitFace.empty()) {
-			color = color + calculateColor(mat, light, flycamera, hitFace[0], hitPoint); 
+			color = color + calculateColor(mat, light, flycamera, hitFace[0], hitPoint);
+		}
+		else
+		{
 			for (int i = 1; i < 9; i++)
 			{
-				float normalis = (cos((M_PI * 2)/i) * .15);
-				float normaliz = (sin((M_PI * 2)/i) * .15);
+				float normalis = (cos((M_PI * 2) / i) * .15);
+				float normaliz = (sin((M_PI * 2) / i) * .15);
 				normala.x = normala.x * normalis;
 				normala.y = normala.y * normalis;
 				normala.z = normala.z * normalis;
@@ -629,18 +632,16 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 				vectorThree sShadowPoint;
 
 				sShadowPoint.x = addshadow.x + shadowLight.x;
-					sShadowPoint.y = addshadow.y + shadowLight.y;
-					sShadowPoint.z = addshadow.z + shadowLight.z;
+				sShadowPoint.y = addshadow.y + shadowLight.y;
+				sShadowPoint.z = addshadow.z + shadowLight.z;
 				Triangle sShadowRay = traceRay(hitPoint, sShadowPoint, boxes);
-				if (!sShadowRay.hitFace.empty())
+				if (sShadowRay.hitFace.empty())
 				{
-					color = color + softval; 
-					vectorThree viewcolor = vectorThree::toVectorThree(color);
+					std::cout << "Touch";
+					color = color + softval;
 				}
 			}
 		}
-		
-		
 		
 	}
 	color = color + mat.getAmbient();
