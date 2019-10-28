@@ -449,14 +449,13 @@ void Flyscene::traceDebugRay(vectorThree& origin, vectorThree& dest, std::vector
 		return;
 	}
 	
-	Tucano::Shapes::Cylinder debugRay = Tucano::Shapes::Cylinder(0.1, 1.0, 16, 64);
-
+	Tucano::Shapes::Cylinder debugRay = Tucano::Shapes::Cylinder(0.1, 0.0);
+	debugRay.resetModelMatrix();
 	Triangle tracedRay = traceRay(origin, dest, boxes);
 
-	vectorThree dir = (dest - origin);
-	dir.x /= 5;
-	dir.y /= 5;
-	dir.z /= 5;
+	vectorThree dir = vectorThree::toVectorThree(((dest - origin).toEigenThree()).normalized());
+	
+	debugRay.setOriginOrientation(origin.toEigenThree(), dir.toEigenThree());
 
 	float rayLength;
 	if (tracedRay.hitFace.empty()) {
@@ -467,10 +466,7 @@ void Flyscene::traceDebugRay(vectorThree& origin, vectorThree& dest, std::vector
 	}
 	
 	debugRay.setSize(0.005, rayLength);
-
-	debugRay.resetModelMatrix();
-
-	debugRay.setOriginOrientation(origin.toEigenThree(), dir.toEigenThree());
+	
 	rays.push_back(debugRay);
 	
 	if (tracedRay.hitFace.empty()) {
@@ -619,11 +615,11 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 }
 
 vectorThree Flyscene::calcReflection(vectorThree hitPoint, vectorThree origin, std::vector<face> hitFace) {
-	vectorThree direction = (hitPoint - origin) / direction.length();
+	vectorThree direction = (hitPoint - origin).normalize();
 
-	vectorThree normal = hitFace[0].normal / normal.length();
+	vectorThree normal = hitFace[0].normal.normalize();
 
-		vectorThree refVector = direction - normal*(normal.dot(direction)*2);
+	vectorThree refVector = (direction - normal*(normal.dot(direction)*2)).normalize();
 
 	vectorThree dest = hitPoint + refVector * 10000;
 	return dest;
