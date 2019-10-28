@@ -189,26 +189,26 @@ bool rayBoxIntersection(const BoundingBox &box, vectorThree& origin, vectorThree
   return true;
 }
 
-bool rayTriangleIntersection(vectorThree& p, vectorThree& q, const face& currentFace, vectorThree& uvw) {
+bool rayTriangleIntersection(vectorThree& origin, vectorThree& dest, const face& currentFace, vectorThree& uvw) {
 
 	rayTriangleChecks++;
 
-	vectorThree a = currentFace.vertex1;
-	vectorThree b = currentFace.vertex2;
-	vectorThree c = currentFace.vertex3;
+	vectorThree v0 = currentFace.vertex1;
+	vectorThree v1 = currentFace.vertex2;
+	vectorThree v2 = currentFace.vertex3;
 
-	vectorThree pq = q - p;
-	vectorThree pa = a - p;
-	vectorThree pb = b - p;
-	vectorThree pc = c - p;
+	vectorThree dir = dest - origin;
+	vectorThree originTov0 = v0 - origin;
+	vectorThree originTov1 = v1 - origin;
+	vectorThree originTov2 = v2 - origin;
 
-	uvw.x = pq.scalarTripleProduct(pc, pb);
+	uvw.x = dir.scalarTripleProduct(originTov2, originTov1);
 	if (uvw.x < 0.0) { return false; }
 
-	uvw.y = pq.scalarTripleProduct(pa, pc);
+	uvw.y = dir.scalarTripleProduct(originTov0, originTov2);
 	if (uvw.y < 0.0) { return false; }
 
-	uvw.z = pq.scalarTripleProduct(pb, pa);
+	uvw.z = dir.scalarTripleProduct(originTov1, originTov0);
 	if (uvw.z < 0.0) { return false; }
 
 	float denom = 1.0 / (uvw.x + uvw.y + uvw.z);
