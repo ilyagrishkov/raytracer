@@ -609,24 +609,10 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 		return NO_HIT_COLOR;
 	}
 
-	if (bounces < MAX_BOUNCES) {
-		vectorThree direction = (hitPoint - origin) / direction.length();
-
-		vectorThree normal = hitFace[0].normal / normal.length();
-
-		vectorThree refVector = direction - normal*(normal.dot(direction)*2);
-
-		vectorThree dest = hitPoint + refVector * 10000;
-
-		float rayLength = 10000;
-
-		traceRay(hitPoint, dest, boxes, bounces + 1, rayLength);
-
-		//Do something with this reflection
-	}
+	
 	
 	Eigen::Vector3f color = { 0.0, 0.0, 0.0 };
-
+	Eigen::Vector3f reflectcolor = { 0.0, 0.0, 0.0 };
 	int matId = hitFace[0].material_id;				
 	Tucano::Material::Mtl mat = materials[matId];
 	vectorThree shadowLight;
@@ -642,7 +628,27 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 		}
 		
 	}
-	color = color + mat.getAmbient();
+
+	if (bounces < MAX_BOUNCES) {
+
+		vectorThree direction = dest-origin;
+
+		vectorThree normal = hitPoint.normalize();
+
+		vectorThree refVector = direction - normal * (normal.dot(direction))*2;
+
+		vectorThree origin = hitPoint + hitPoint.normalize()*0.00008;
+
+		float rayLength = (origin-refVector).length();
+
+
+		reflectcolor = traceRay(origin, refVector, boxes, bounces + 1, rayLength);
+
+		reflectcolor = (reflectcolor*.2);
+
+		color = color + reflectcolor;
+	}
+
 	return color;
 }
 
