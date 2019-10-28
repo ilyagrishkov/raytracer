@@ -20,16 +20,19 @@
 #include <algorithm>
 #include <cmath>
 
-static int rayTriangleChecks = 0;
-static int rayBoxChecks = 0;
-static int rayTriangleIntersections = 0;
-static int rayBoxIntersections = 0;
+static long long rayTriangleChecks = 0;
+static long long rayBoxChecks = 0;
+static long long rayTriangleIntersections = 0;
+static long long rayBoxIntersections = 0;
+
+static int load_progress = 0;
 
 
 static float RAYLENGTH = 10.0;
 static const int MAX_DEPTH = 5;
 static const int MAX_BOUNCES = 0;
 static const Eigen::Vector3f NO_HIT_COLOR = { 1.0, 1.0, 1.0 };
+static const int SOFT_SHADOW_PRECISION = 8;
 
 struct vectorFour {
 	float x;
@@ -202,15 +205,10 @@ struct vectorThree {
 		vectorThree out = { old(0), old(1), old(2) };
 		return out;
 	}
-
-	static Eigen::Vector3f toEigenVector(vectorThree old) {
-		return Eigen::Vector3f(old.x, old.y, old.z);
+	static Eigen::Vector3f toEigenVector3(vectorThree old) {
+		Eigen::Vector3f out = Eigen::Vector3f( old.x, old.y, old.z );
+		return out;
 	}
-
-	float distance(vectorThree other) {
-		return sqrt(pow(x - other.x, 2) + pow(y - other.y, 2) + pow(z - other.z, 2));
-	}
-
 };
 
 struct face {
@@ -351,7 +349,7 @@ private:
   Tucano::Camera scene_light;
 
   /// A very thin cylinder to draw a debug ray
-  Tucano::Shapes::Cylinder ray = Tucano::Shapes::Cylinder(0.1, 1.0, 16, 64);
+  Tucano::Shapes::Cylinder ray[15];
 
   // Scene meshes
   Tucano::Mesh mesh;
