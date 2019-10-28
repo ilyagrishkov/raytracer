@@ -648,7 +648,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree& origin,
 		
 	}
 	color = color + mat.getAmbient();
-	return color - brightness * softval;
+	return color * (1 - (float(brightness)/float(SOFT_SHADOW_PRECISION)));
 }
 
 Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes) {
