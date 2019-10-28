@@ -221,6 +221,47 @@ bool rayTriangleIntersection(vectorThree& p, vectorThree& q, const face& current
 	return true;
 }
 
+bool MollerTrumbore(vectorThree& origin, vectorThree& dest, const face& currentFace, vectorThree& uvw) {
+
+	vectorThree rayVector = dest - origin;
+
+	vectorThree vertex0 = currentFace.vertex1;
+	vectorThree vertex1 = currentFace.vertex2;
+	vectorThree vertex2 = currentFace.vertex3;
+
+	vectorThree edge1, edge2, h, s, q;
+
+	float a, f, u, v;
+
+	edge1 = vertex1 - vertex0;
+	edge2 = vertex2 - vertex0;
+
+	h = rayVector.cross(edge2);
+	a = edge1.dot(h);
+
+	if (a > -FLT_EPSILON && a < FLT_EPSILON) {
+		return false;
+	}
+
+	f = 1.0 / a;
+	s = origin - vertex0;
+	u = f * s.dot(h);
+	if (u < 0.0 || u > 1.0) {
+		return false;
+	}
+	q = s.cross(edge1);
+
+	float t = f * edge2.dot(q);
+	if (t > FLT_EPSILON && t < 1 / FLT_EPSILON) {
+		uvw = origin + rayVector * t;
+		return true;
+	}
+	else {
+		return false;
+	}
+
+}
+
 void intersectingChildren(const BoundingBox& currentBox, vectorThree& origin, vectorThree& dest, vector<face>& checkFaces) {
 
   if (currentBox.children.size() == 0) {
@@ -249,7 +290,13 @@ std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh& mesh) {
     Eigen::Vector3f vertex2 = mesh.getShapeModelMatrix() * (mesh.getVertex(oldFace.vertex_ids[1])).head<3>();
     Eigen::Vector3f vertex3 = mesh.getShapeModelMatrix() * (mesh.getVertex(oldFace.vertex_ids[2])).head<3>();
 
-    Eigen::Vector3f normal = mesh.getShapeModelMatrix() * oldFace.normal;
+    //Eigen::Vector3f normal = mesh.getShapeModelMatrix() * oldFace.normal;
+
+	//Eigen::Vector3f vertex1 = (mesh.getVertex(oldFace.vertex_ids[0])).head<3>();
+	//Eigen::Vector3f vertex2 = (mesh.getVertex(oldFace.vertex_ids[1])).head<3>();
+	//Eigen::Vector3f vertex3 = (mesh.getVertex(oldFace.vertex_ids[2])).head<3>();
+
+	Eigen::Vector3f normal = oldFace.normal;
 
     face currentFace{
     {vertex1[0], vertex1[1], vertex1[2]},
@@ -257,6 +304,8 @@ std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh& mesh) {
     {vertex3[0], vertex3[1], vertex3[2]},
     {normal[0], normal[1], normal[2]},
     oldFace.material_id };
+
+	currentFace.normal.normalize();
 
     myMesh.push_back(currentFace);
 
@@ -329,8 +378,13 @@ void Flyscene::initialize(int width, int height) {
   flycamera.setViewport(Eigen::Vector2f((float)width, (float)height));
 
   // load the OBJ file and materials
+  //Tucano::MeshImporter::loadObjFile(mesh, materials,
+	//  "resources/models/dodgeColorTest.obj");
+
   Tucano::MeshImporter::loadObjFile(mesh, materials,
-									"resources/models/dodgeColorTest.obj");
+									"resources/models/Colored-Pillars.obj");
+
+  
 
 
   // normalize the model (scale to unit cube and center at origin)
@@ -358,7 +412,6 @@ void Flyscene::initialize(int width, int height) {
 
   // craete a first debug ray pointing at the center of the screen
   createDebugRay(Eigen::Vector2f(width / 2.0, height / 2.0));
-
   glEnable(GL_DEPTH_TEST);
 
   // for (int i = 0; i<mesh.getNumberOfFaces(); ++i){
@@ -459,6 +512,8 @@ void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
 }
 
 
+
+
 void Flyscene::raytraceScene(int width, int height) {
   auto t1 = std::chrono::high_resolution_clock::now();
   std::cout << "ray tracing ..." << std::endl;
@@ -510,6 +565,8 @@ void Flyscene::raytraceScene(int width, int height) {
 		
 	for (int i = 0; i < image_size[0]; ++i) {
 
+		/*
+
 		vectorThree myScreen_coords;
 
 		vectorTwo v2 = { i, j };
@@ -527,11 +584,17 @@ void Flyscene::raytraceScene(int width, int height) {
 		myScreen_coords.y = row2.dot(norm_coords);
 		myScreen_coords.z = row3.dot(norm_coords);
 
-		Eigen::Vector3f temp = traceRay(myOrigin, myScreen_coords, boxes, 0);
-		if (temp[1] == -1) {
-			temp = NO_HIT_COLOR;
-		}
-		pixel_data[i][j] = temp;
+		*/
+
+		vectorThree myScreen_coords = vectorThree::toVectorThree(flycamera.screenToWorld(Eigen::Vector2f(i, j)));
+
+		//Eigen::Vector3f temp = traceRay(myOrigin, myScreen_coords, boxes, 0);
+		//if (temp[1] == -1) {
+		//	temp = NO_HIT_COLOR;
+		//}
+
+		pixel_data[i][j] = vectorThree::toEigenVector(rayTracer(myOrigin, myScreen_coords, boxes, 0));
+		//pixel_data[i][j] = temp;
 		
     }
   }
@@ -598,19 +661,21 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 	for (Eigen::Vector3f light : lights)
 	{
 		shadowLight = vectorThree::toVectorThree(light);
-		hitPointBias = hitPoint + (hitFace[0].normal * 0.008);
+		hitPointBias = hitPoint + hitFace[0].normal * 0.01;
 		Triangle shadowRay = traceRay(hitPointBias, shadowLight, boxes);
 
-		if (shadowRay.hitFace.empty()) {							
+		if (shadowRay.hitFace.empty()) {	
+			//std::cout << "got lit" << std::endl;
 			color = color + calculateColor(mat, light, flycamera, hitFace[0], hitPoint);
 		}
 		
 	}
 	color = color + mat.getAmbient();
+	//color = Eigen::Vector3f(hitFace[0].normal.x, hitFace[0].normal.y, hitFace[0].normal.z);
 	return color;
 }
 
-Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes) {
+Triangle Flyscene::traceRay(vectorThree origin, vectorThree dest, std::vector<BoundingBox>& boxes) {
 	vectorThree uvw, point, hitPoint;
 	std::vector<face> minFace;
 	float currentDistance;
@@ -629,7 +694,7 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 			intersectingChildren(currentBox, origin, dest, checkFaces);
 			for (const face &currentFace : checkFaces) {
 				//If it hits a face in that box	
-        face oppositeFace = currentFace;
+				face oppositeFace = currentFace;
 				std::swap<vectorThree>(oppositeFace.vertex1, oppositeFace.vertex2);
         
 				if (rayTriangleIntersection(origin, dest, currentFace, uvw)) {
@@ -667,5 +732,138 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 	}
   
 	return { hitPoint, minFace };
+
+}
+
+bool Flyscene::rayChecker(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes) {
+
+	vectorThree uvw;
+
+	vectorThree dest2 = dest;
+	vectorThree origin2 = origin;
+
+	//vectorThree rayDirection = dest2 - origin2;
+	//rayDirection.x *= 5.0;
+	//rayDirection.y *= 5.0;
+	//rayDirection.z *= 5.0;
+	//dest2 = rayDirection + origin2;
+
+	for (const BoundingBox& currentBox : boxes) {
+
+
+		if (rayBoxIntersection(currentBox, origin2, dest2)) {
+
+
+			std::vector<face> checkFaces;
+
+
+			intersectingChildren(currentBox, origin2, dest2, checkFaces);
+
+
+			for (const face& currentFace : checkFaces) {
+
+				if (rayTriangleIntersection(origin2, dest2, currentFace, uvw)) {
+
+					return false;
+
+				}
+
+			}
+
+		}
+
+	}
+
+	return true;
+
+}
+
+float Flyscene::lightSourceTracer(vectorThree& origin, std::vector<BoundingBox>& boxes) {
+
+	float lum;
+
+	for (Eigen::Vector3f light : lights)
+	{
+		vectorThree lightPos = vectorThree::toVectorThree(light);
+
+		//std::cout << lightPos.x << " " << lightPos.y << " " << lightPos.z << std::endl;
+
+		if (rayChecker(origin, lightPos, boxes)) {
+			return 1.0;
+		}
+	}
+
+	return 0.0;
+}
+
+vectorThree Flyscene::rayTracer(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes, int bounces) {
+
+	vectorThree uvw;
+
+	vectorThree dest2 = dest;
+	vectorThree origin2 = origin;
+
+	vectorThree rayDirection = dest2 - origin2;
+	rayDirection.x *= 5.0;
+	rayDirection.y *= 5.0;
+	rayDirection.z *= 5.0;
+	dest2 = rayDirection + origin2;
+
+	face closestFace;
+	float distance = FLT_MAX;
+	vectorThree hitPoint;
+
+	for (const BoundingBox& currentBox : boxes) {
+
+
+		if (rayBoxIntersection(currentBox, origin2, dest2)) {
+
+
+			std::vector<face> checkFaces;
+
+
+			intersectingChildren(currentBox, origin2, dest2, checkFaces);
+
+
+			for (const face& currentFace : checkFaces) {
+
+				if (rayTriangleIntersection(origin2, dest2, currentFace, uvw)) {
+
+					float currentDistance = uvw.distance(origin2);
+
+					if (currentDistance < distance) {
+
+						distance = currentDistance;
+						closestFace = currentFace;
+						hitPoint = uvw;
+					}
+				}
+			}
+		}
+	}
+
+	if (distance == FLT_MAX) {
+		return vectorThree{ 0.0, 0.0, 0.0 };
+	}
+
+	return closestFace.normal;
+
+	int matId = closestFace.material_id;
+	Tucano::Material::Mtl mat = materials[matId];
+
+	vectorThree normal = closestFace.normal;
+
+	return vectorThree::toVectorThree(mat.getDiffuse());
+	
+	normal.x *= 0.001;
+	normal.y *= 0.001;
+	normal.z *= 0.001;
+	vectorThree newOrigin = hitPoint + normal;
+
+	float lum = lightSourceTracer(newOrigin, boxes);
+
+	if (lum == 1.0) {
+		return vectorThree{ 0.9, 0.1, 0.3 };
+	}
 
 }

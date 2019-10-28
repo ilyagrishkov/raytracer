@@ -28,7 +28,7 @@ static int rayBoxIntersections = 0;
 
 static float RAYLENGTH = 10.0;
 static const int MAX_DEPTH = 5;
-static const int MAX_BOUNCES = 1;
+static const int MAX_BOUNCES = 0;
 static const Eigen::Vector3f NO_HIT_COLOR = { 1.0, 1.0, 1.0 };
 
 struct vectorFour {
@@ -41,6 +41,7 @@ struct vectorFour {
 		float result = 0;
 		result += x * other.x;
 		result += y * other.y;
+		result += z * other.z;
 		result += z * other.z;
 		result += w * other.w;
 		return result;
@@ -202,6 +203,14 @@ struct vectorThree {
 		return out;
 	}
 
+	static Eigen::Vector3f toEigenVector(vectorThree old) {
+		return Eigen::Vector3f(old.x, old.y, old.z);
+	}
+
+	float distance(vectorThree other) {
+		return sqrt(pow(x - other.x, 2) + pow(y - other.y, 2) + pow(z - other.z, 2));
+	}
+
 };
 
 struct face {
@@ -308,7 +317,13 @@ public:
    */
   Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<BoundingBox> &boxes, int bounces, float& lengthRay = RAYLENGTH);
 
-  Triangle traceRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes);
+  vectorThree rayTracer(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes, int bounces);
+
+  float lightSourceTracer(vectorThree& origin, std::vector<BoundingBox>& boxes);
+
+  bool rayChecker(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes);
+
+  Triangle traceRay(vectorThree origin, vectorThree dest, std::vector<BoundingBox>& boxes);
   
   Tucano::Flycamera flycamera;
 
