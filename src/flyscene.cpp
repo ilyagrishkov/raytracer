@@ -434,7 +434,6 @@ void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
 	Eigen::Vector3f screen_pos = flycamera.screenToWorld(mouse_pos);
 
 	vectorThree myOrigin = vectorThree::toVectorThree(flycamera.getCenter());
-	vectorThree myDir = vectorThree::toVectorThree(dir);
 	vectorThree myDestination = vectorThree::toVectorThree(screen_pos);
 	std::vector<BoundingBox> boxes = createBoundingBoxes(mesh);
 
@@ -592,19 +591,30 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 		return NO_HIT_COLOR;
 	}
 	
-	//Start hard shadow
-	Eigen::Vector3f color = { 0.0, 0.0, 0.0 };
-
-
 	if (bounces < MAX_BOUNCES) {
 		dest = calcReflection(hitPoint, origin, hitFace);
 		traceRay(hitPoint, dest, boxes, bounces + 1);
 
 		//Do something with this reflection
 	}
-	int matId = hitFace[0].material_id;				
+	Eigen::Vector3f color = { 0.0, 0.0, 0.0 };
+
+	int matId = hitFace[0].material_id;
 	Tucano::Material::Mtl mat = materials[matId];
-	color += mat.getDiffuse();
+	vectorThree shadowLight;
+	vectorThree hitPointBias;
+	for (Eigen::Vector3f light : lights)
+	{
+		shadowLight = vectorThree::toVectorThree(light);
+		hitPointBias = hitPoint + (hitFace[0].normal * 0.008);
+		Triangle shadowRay = traceRay(hitPointBias, shadowLight, boxes);
+
+		if (shadowRay.hitFace.empty()) {
+			color = color + calculateColor(mat, light, flycamera, hitFace[0], hitPoint);
+		}
+
+	}
+	color = color + mat.getAmbient();
 	return color;
 }
 
@@ -616,34 +626,9 @@ vectorThree Flyscene::calcReflection(vectorThree hitPoint, vectorThree origin, s
 		vectorThree refVector = direction - normal*(normal.dot(direction)*2);
 
 	vectorThree dest = hitPoint + refVector * 10000;
-
-		float rayLength = 10000;
-
-		traceRay(hitPoint, dest, boxes, bounces + 1, rayLength);
-
-		//Do something with this reflection
+	return dest;
 	}
-	
-	Eigen::Vector3f color = { 0.0, 0.0, 0.0 };
 
-	int matId = hitFace[0].material_id;				
-	Tucano::Material::Mtl mat = materials[matId];
-	vectorThree shadowLight;
-	vectorThree hitPointBias;
-	for (Eigen::Vector3f light : lights)
-	{
-		shadowLight = vectorThree::toVectorThree(light);
-		hitPointBias = hitPoint + (hitFace[0].normal * 0.008);
-		Triangle shadowRay = traceRay(hitPointBias, shadowLight, boxes);
-
-		if (shadowRay.hitFace.empty()) {							
-			color = color + calculateColor(mat, light, flycamera, hitFace[0], hitPoint);
-		}
-		
-	}
-	color = color + mat.getAmbient();
-	return color;
-}
 
 Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes) {
 	vectorThree uvw, point, hitPoint;
