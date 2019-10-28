@@ -637,14 +637,14 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin,
 
 		vectorThree refVector = direction - normal * (normal.dot(direction))*2;
 
-		vectorThree origin = hitPoint + hitPoint.normalize()*0.00008;
+		vectorThree origin = hitPoint + hitPoint.normalize()*0.008;
 
 		float rayLength = (origin-refVector).length();
 
 
 		reflectcolor = traceRay(origin, refVector, boxes, bounces + 1, rayLength);
 
-		reflectcolor = (reflectcolor*.2);
+		reflectcolor = (reflectcolor*.8);
 
 		color = color + reflectcolor;
 	}
