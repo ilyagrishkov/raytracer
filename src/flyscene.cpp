@@ -25,8 +25,6 @@ BoundingBox createBox(const std::vector<face>& mesh) {
 
   BoundingBox currentBox;
 
-  std::cout << "splitting box" << std::endl;
-
   for (int i = 0; i < mesh.size(); i++) {
 
     face currentFace = mesh[i];
@@ -82,7 +80,6 @@ BoundingBox splitBox(BoundingBox& rootBox, int faceNum) {
 
   std::vector<face> faces = rootBox.faces;
 
-  //std::cout << "splitting box" << std::endl;
 
   if (faces.size() > faceNum) {
 
@@ -240,6 +237,9 @@ void intersectingChildren(const BoundingBox& currentBox, vectorThree& origin, ve
 
 std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh& mesh) {
 
+  std::cout << "Creating bounding boxes...\r";
+  std::cout.flush();
+
   std::vector<face> myMesh;
 
   for (int i = 0; i < mesh.getNumberOfFaces(); i++) {
@@ -270,7 +270,7 @@ std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh& mesh) {
 
   //printNodes(currentBox);
   boxes.push_back(currentBox);
-
+  std::cout << "Creating bounding boxes... DONE" << std::endl;
   return boxes;
 }
 
@@ -316,6 +316,26 @@ Eigen::Vector3f calculateColor(const Tucano::Material::Mtl& mat, const Eigen::Ve
   float spec = std::pow(spec_temp, shininess);
 
   return diff * kd + spec * ks;
+}
+
+void printProgressBar(int prog, int size) {
+
+	float progress = float(prog) / float(size);
+	int barWidth = 70;
+
+	std::cout << "[";
+	int pos = barWidth * progress;
+
+	for (int i = 0; i < barWidth; ++i) {
+
+		if (i < pos) std::cout << "=";
+		else if (i == pos) std::cout << ">";
+		else std::cout << " ";
+	}
+
+	std::cout << "] " << int(progress * 100.0) << " %\r";
+
+	std::cout.flush();
 }
 
 //===========================================================================
@@ -464,7 +484,7 @@ void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
 
 void Flyscene::raytraceScene(int width, int height) {
   auto t1 = std::chrono::high_resolution_clock::now();
-  std::cout << "ray tracing ..." << std::endl;
+  std::cout << "Ray tracing..." << std::endl;
 
   // if no width or height passed, use dimensions of current viewport
   Eigen::Vector2i image_size(width, height);
@@ -504,35 +524,16 @@ void Flyscene::raytraceScene(int width, int height) {
 
   for (int j = 0; j < image_size[1]; ++j) {
 
-	  if (j % 10 == 0) {
-		  std::cout << j << std::endl;
+#pragma omp critical  
+	  {
+	  load_progress++;
+	  printProgressBar(load_progress, image_size[1]);
 	  }
-
-	  // The progress bar wasn't working for the threaded version, so I removed it.
-	  // I do think we should have something more elegant than the counter above, but we can work on that when the essentials are done.
+	  
 		
 	for (int i = 0; i < image_size[0]; ++i) {
 
 		vectorThree myScreen_coords;
-
-		/*
-
-		vectorTwo v2 = { i, j };
-
-		vectorFour norm_coords = {
-		2.0 * (v2.x - viewport.x) / viewport.z - 1.0,
-		1.0 - 2.0 * (v2.y - viewport.y) / viewport.w,
-		-1.0 , 1.0};
-     
-		float scale = 1.0 / flycamera.getPerspectiveScale();
-		norm_coords.x *= flycamera.getViewportAspectRatio() * scale;
-		norm_coords.y *= scale;
-
-		myScreen_coords.x = row1.dot(norm_coords);
-		myScreen_coords.y = row2.dot(norm_coords);
-		myScreen_coords.z = row3.dot(norm_coords);
-
-		*/
 
 		Eigen::Vector3f coords = flycamera.screenToWorld(Eigen::Vector2f(i, j));
 		myScreen_coords.x = coords[0];
@@ -551,6 +552,10 @@ void Flyscene::raytraceScene(int width, int height) {
   auto t2 = std::chrono::high_resolution_clock::now();
 
   std::cout << "=========== STATISTICS ===========" << std::endl;
+  std::cout << "Resolution: " << image_size[0] << "x" << image_size[1] << std::endl;
+  std::cout << "Number of ray reflections: " << MAX_BOUNCES << std::endl;
+  std::cout << "Soft shadow precision: " << SOFT_SHADOW_PRECISION << std::endl;
+  std::cout << "----------------------------------" << std::endl;
   std::cout << "Ray-triangle checks: " << rayTriangleChecks << std::endl;
   std::cout << "Ray-triangle intersections: " << rayTriangleIntersections << std::endl;
   std::cout << "Ray-triangle efficiency: " << round(float(rayTriangleIntersections)/float(rayTriangleChecks) * 100) << " %" << std::endl;
@@ -566,7 +571,8 @@ void Flyscene::raytraceScene(int width, int height) {
   std::cout << "==================================" << std::endl;
   // write the ray tracing result to a PPM image
   Tucano::ImageImporter::writePPMImage("result.ppm", pixel_data);
-  std::cout << "ray tracing done! " << std::endl;
+  std::cout << "Ray tracing... DONE" << std::endl;
+  load_progress = 0;
 }
 
 
@@ -608,11 +614,8 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree& origin,
 	vectorThree shadowLight;
 	vectorThree hitPointBias;
 	float brightness = 0;
-	Eigen::Vector3f softval = { 0.03125, 0.03125, 0.03125 };
-	Eigen::Vector3f shadowpoint = { 0.0, 0.0, 0.0 };
-	Eigen::Vector3f _crosser = { 0, 0, 1 };
-	vectorThree shadowPoint = vectorThree::toVectorThree(shadowpoint);
-	vectorThree crosser = vectorThree::toVectorThree(_crosser);
+	Eigen::Vector3f softval = { 1/float(SOFT_SHADOW_PRECISION), 1 / float(SOFT_SHADOW_PRECISION), 1 / float(SOFT_SHADOW_PRECISION) };
+
 	for (Eigen::Vector3f light : lights)
 	{
 		shadowLight = vectorThree::toVectorThree(light);
@@ -626,23 +629,15 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree& origin,
 		vectorThree a = { -diskNormal.y, diskNormal.x, diskNormal.z };
 		vectorThree b = a.cross(diskNormal);
 
-		//std::cout << "LIGHT: " << shadowLight.x << ", " << shadowLight.y << ", " << shadowLight.z << std::endl;
-		//std::cout << "BIAS: " << hitPointBias.x << ", " << hitPointBias.y << ", " << hitPointBias.z << std::endl;
+		for (int i = 0; i <= SOFT_SHADOW_PRECISION; i++) {
 
-
-		for (int i = 0; i < 33; i++) {
-
-			float diskX = shadowLight.x + radius * cos((M_PI / 4) * i) * a.x + radius * sin((M_PI / 4) * i) * b.x;
-			float diskY = shadowLight.y + radius * cos((M_PI / 4) * i) * a.y + radius * sin((M_PI / 4) * i) * b.y;
-			float diskZ = shadowLight.z + radius * cos((M_PI / 4) * i) * a.z + radius * sin((M_PI / 4) * i) * b.z;
+			float diskX = shadowLight.x + radius * cos((M_PI / (SOFT_SHADOW_PRECISION /2)) * i) * a.x + radius * sin((M_PI / (SOFT_SHADOW_PRECISION / 2)) * i) * b.x;
+			float diskY = shadowLight.y + radius * cos((M_PI / (SOFT_SHADOW_PRECISION / 2)) * i) * a.y + radius * sin((M_PI / (SOFT_SHADOW_PRECISION / 2)) * i) * b.y;
+			float diskZ = shadowLight.z + radius * cos((M_PI / (SOFT_SHADOW_PRECISION / 2)) * i) * a.z + radius * sin((M_PI / (SOFT_SHADOW_PRECISION / 2)) * i) * b.z;
 
 			vectorThree pointOndisk = { diskX, diskY, diskZ };
 
-			//std::cout << "POINT ON DISK: " << pointOndisk.x << ", " << pointOndisk.y << ", " << pointOndisk.z << std::endl;
-			//std::cout << "BIAS 2: " << hitPointBias.x << ", " << hitPointBias.y << ", " << hitPointBias.z << std::endl;
 			Triangle sShadowRay = traceRay(hitPointBias, pointOndisk, boxes);
-			//std::cout << "HIT POINT: " << sShadowRay.hitPoint.x << ", " << sShadowRay.hitPoint.y << ", " << sShadowRay.hitPoint.z << std::endl;
-			//std::cout << "EXPECTED: " << pointOndisk.x << ", " << pointOndisk.y << ", " << pointOndisk.z << std::endl;
 
 			if (!(sShadowRay.hitFace.empty())){
 				brightness++;
@@ -650,48 +645,10 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree& origin,
 		}
 
 		color = calculateColor(mat, light, flycamera, hitFace[0], hitPoint);
-
-		/**shadowLight = vectorThree::toVectorThree(light);
-		hitPointBias = hitPoint + (hitFace[0].normal * 0.008);
-		vectorThree normal = (shadowLight - hitPointBias).normalize();
-		vectorThree normala = normal.cross(crosser);
-		vectorThree normalb = normala.cross(normal);
-		Triangle shadowRay = traceRay(hitPointBias, shadowLight, boxes);
-		if (shadowRay.hitFace.empty()) {
-			color = color + calculateColor(mat, light, flycamera, hitFace[0], hitPoint);
-		}
-		else
-		{
-			for (int i = 1; i < 9; i++)
-			{
-				float normalis = (cos((M_PI * 2) / i) * .15);
-				float normaliz = (sin((M_PI * 2) / i) * .15);
-				normala.x = normala.x * normalis;
-				normala.y = normala.y * normalis;
-				normala.z = normala.z * normalis;
-				normalb.x = normalb.x * normaliz;
-				normalb.y = normalb.y * normaliz;
-				normalb.z = normalb.z * normaliz;
-
-				vectorThree addshadow = normala + normalb;
-
-				vectorThree sShadowPoint;
-
-				sShadowPoint.x = addshadow.x + shadowLight.x;
-				sShadowPoint.y = addshadow.y + shadowLight.y;
-				sShadowPoint.z = addshadow.z + shadowLight.z;
-				Triangle sShadowRay = traceRay(hitPoint, sShadowPoint, boxes);
-				if (sShadowRay.hitFace.empty())
-				{
-					std::cout << "Touch";
-					color = color + softval;
-				}
-			}
-		}*/
 		
 	}
 	color = color + mat.getAmbient();
-	return color - softval*brightness;
+	return color - brightness * softval;
 }
 
 Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes) {
