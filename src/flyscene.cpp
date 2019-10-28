@@ -335,6 +335,7 @@ void Flyscene::initialize(int width, int height) {
 
   // normalize the model (scale to unit cube and center at origin)
   mesh.normalizeModelMatrix();
+  boxes = createBoundingBoxes(mesh);
 
   // pass all the materials to the Phong Shader
   for (int i = 0; i < materials.size(); ++i)
@@ -435,8 +436,7 @@ void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
 
 	vectorThree myOrigin = vectorThree::toVectorThree(flycamera.getCenter());
 	vectorThree myDestination = vectorThree::toVectorThree(screen_pos);
-	std::vector<BoundingBox> boxes = createBoundingBoxes(mesh);
-
+	
 	traceDebugRay(myOrigin, myDestination, boxes, 0);
 	
 	camerarep.resetModelMatrix();
@@ -451,7 +451,9 @@ void Flyscene::traceDebugRay(vectorThree& origin, vectorThree& dest, std::vector
 	
 	Tucano::Shapes::Cylinder debugRay = Tucano::Shapes::Cylinder(0.1, 0.0);
 	debugRay.resetModelMatrix();
+	std::cout << "origin: " << dest.x << std::endl;
 	Triangle tracedRay = traceRay(origin, dest, boxes);
+	std::cout << "origin: " << dest.x << std::endl;
 
 	vectorThree dir = vectorThree::toVectorThree(((dest - origin).toEigenThree()).normalized());
 	
@@ -511,8 +513,6 @@ void Flyscene::raytraceScene(int width, int height) {
   vectorThree myOrigin = vectorThree::toVectorThree(origin);
 
  //for every pixel shoot a ray from the origin through the pixel coords
-
-  std::vector<BoundingBox> boxes = createBoundingBoxes(mesh);
 
 #pragma omp parallel for schedule(dynamic, 1) num_threads(10)
 
@@ -626,7 +626,7 @@ vectorThree Flyscene::calcReflection(vectorThree hitPoint, vectorThree origin, s
 	}
 
 
-Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes) {
+Triangle Flyscene::traceRay(vectorThree origin, vectorThree dest, std::vector<BoundingBox>& boxes) {
 	vectorThree uvw, point, hitPoint;
 	std::vector<face> minFace;
 	float currentDistance;
@@ -646,7 +646,7 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 			for (const face &currentFace : checkFaces) {
 				//If it hits a face in that box	
 				face oppositeFace = currentFace;
-				std::swap<vectorThree>(oppositeFace.vertex1, oppositeFace.vertex2);
+				std::swap<vectorThree>(oppositeFace.vertex2, oppositeFace.vertex3);
         
 				if (rayTriangleIntersection(origin, dest, currentFace, uvw)) {
 					
@@ -664,7 +664,7 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 				}
 				else if (rayTriangleIntersection(origin, dest, oppositeFace, uvw)) {
 					
-					point = (oppositeFace.vertex1 * uvw.x) + (oppositeFace.vertex2 * uvw.y) + (oppositeFace.vertex3 * uvw.z);
+					point = (currentFace.vertex1 * uvw.x) + (currentFace.vertex3 * uvw.y) + (currentFace.vertex2 * uvw.z);
 
 					currentDistance = (point - origin).length();
 					//Calculates closest triangle

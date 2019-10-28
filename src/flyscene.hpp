@@ -189,7 +189,7 @@ struct vectorThree {
 	}
 
 	float scalarTripleProduct(vectorThree v, vectorThree w) {
-		return cross(v).dot(w);
+		return (this->cross(v)).dot(w);
 	}
 
 	float length() {
@@ -314,7 +314,7 @@ public:
 
   void traceDebugRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes, int bounces);
 
-  Triangle traceRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes);
+  Triangle traceRay(vectorThree origin, vectorThree dest, std::vector<BoundingBox>& boxes);
   
 
   vectorThree calcReflection(vectorThree hitPoint, vectorThree origin, std::vector<face> hitFace);
@@ -351,6 +351,7 @@ private:
 
   /// MTL materials
   vector<Tucano::Material::Mtl> materials;
+  std::vector<BoundingBox> boxes;
 };
 
 #endif // FLYSCENE
