@@ -515,6 +515,8 @@ void Flyscene::raytraceScene(int width, int height) {
 
 		vectorThree myScreen_coords;
 
+		/*
+
 		vectorTwo v2 = { i, j };
 
 		vectorFour norm_coords = {
@@ -529,6 +531,13 @@ void Flyscene::raytraceScene(int width, int height) {
 		myScreen_coords.x = row1.dot(norm_coords);
 		myScreen_coords.y = row2.dot(norm_coords);
 		myScreen_coords.z = row3.dot(norm_coords);
+
+		*/
+
+		Eigen::Vector3f coords = flycamera.screenToWorld(Eigen::Vector2f(i, j));
+		myScreen_coords.x = coords[0];
+		myScreen_coords.y = coords[1];
+		myScreen_coords.z = coords[2];
 
 		Eigen::Vector3f temp = traceRay(myOrigin, myScreen_coords, boxes, 0);
 		if (temp[1] == -1) {
@@ -598,6 +607,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree& origin,
 	Tucano::Material::Mtl mat = materials[matId];
 	vectorThree shadowLight;
 	vectorThree hitPointBias;
+	float brightness = 1;
 	Eigen::Vector3f softval = { 1 / 8, 1 / 8, 1 / 8 };
 	Eigen::Vector3f shadowpoint = { 0.0, 0.0, 0.0 };
 	Eigen::Vector3f _crosser = { 0, 0, 1 };
@@ -606,6 +616,43 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree& origin,
 	for (Eigen::Vector3f light : lights)
 	{
 		shadowLight = vectorThree::toVectorThree(light);
+		hitPointBias = hitPoint + (hitFace[0].normal * 0.008);
+		float radius = 0.15;
+
+		vectorThree ray = shadowLight - hitPointBias;
+		vectorThree diskNormal = { -ray.x, -ray.y, -ray.z };
+		diskNormal = diskNormal.normalize();
+
+		vectorThree a = { -diskNormal.y, diskNormal.x, diskNormal.z };
+		vectorThree b = a.cross(diskNormal);
+
+		//std::cout << "LIGHT: " << shadowLight.x << ", " << shadowLight.y << ", " << shadowLight.z << std::endl;
+		//std::cout << "BIAS: " << hitPointBias.x << ", " << hitPointBias.y << ", " << hitPointBias.z << std::endl;
+
+
+		for (int i = 0; i < 9; i++) {
+
+			float diskX = shadowLight.x + radius * cos((M_PI / 4) * i) * a.x + radius * sin((M_PI / 4) * i) * b.x;
+			float diskY = shadowLight.y + radius * cos((M_PI / 4) * i) * a.y + radius * sin((M_PI / 4) * i) * b.y;
+			float diskZ = shadowLight.z + radius * cos((M_PI / 4) * i) * a.z + radius * sin((M_PI / 4) * i) * b.z;
+
+			vectorThree pointOndisk = { diskX, diskY, diskZ };
+
+			//std::cout << "POINT ON DISK: " << pointOndisk.x << ", " << pointOndisk.y << ", " << pointOndisk.z << std::endl;
+			//std::cout << "BIAS 2: " << hitPointBias.x << ", " << hitPointBias.y << ", " << hitPointBias.z << std::endl;
+			Triangle sShadowRay = traceRay(hitPointBias, pointOndisk, boxes);
+			std::cout << "HIT POINT: " << sShadowRay.hitPoint.x << ", " << sShadowRay.hitPoint.y << ", " << sShadowRay.hitPoint.z << std::endl;
+			std::cout << "EXPECTED: " << pointOndisk.x << ", " << pointOndisk.y << ", " << pointOndisk.z << std::endl;
+
+			if (!(sShadowRay.hitPoint == pointOndisk)){
+				brightness =- (1 / 8);
+			}
+		}
+
+		color = brightness * calculateColor(mat, light, flycamera, hitFace[0], hitPoint);
+
+
+		/**shadowLight = vectorThree::toVectorThree(light);
 		hitPointBias = hitPoint + (hitFace[0].normal * 0.008);
 		vectorThree normal = (shadowLight - hitPointBias).normalize();
 		vectorThree normala = normal.cross(crosser);
@@ -641,7 +688,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree& origin,
 					color = color + softval;
 				}
 			}
-		}
+		}*/
 		
 	}
 	color = color + mat.getAmbient();
@@ -653,28 +700,32 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 	std::vector<face> minFace;
 	float currentDistance;
 	float minDistance = FLT_MAX;
-  vectorThree rayDirection = dest - origin;
+
+	vectorThree origin2 = origin;
+	vectorThree dest2 = dest;
+
+  vectorThree rayDirection = dest2 - origin2;
 	rayDirection.x *= 5.0;
 	rayDirection.y *= 5.0;
 	rayDirection.z *= 5.0;
-	dest = rayDirection + origin;
+	dest2 = rayDirection + origin2;
 
   
 	for (const BoundingBox &currentBox : boxes) {
 		//If ray hits a box
-		if (rayBoxIntersection(currentBox, origin, dest)) {
+		if (rayBoxIntersection(currentBox, origin2, dest2)) {
 			std::vector<face> checkFaces;
-			intersectingChildren(currentBox, origin, dest, checkFaces);
+			intersectingChildren(currentBox, origin2, dest2, checkFaces);
 			for (const face &currentFace : checkFaces) {
 				//If it hits a face in that box	
         face oppositeFace = currentFace;
 				std::swap<vectorThree>(oppositeFace.vertex1, oppositeFace.vertex2);
         
-				if (rayTriangleIntersection(origin, dest, currentFace, uvw)) {
+				if (rayTriangleIntersection(origin2, dest2, currentFace, uvw)) {
 					//This is the point it hits the triangle
 					point = (currentFace.vertex1 * uvw.x) + (currentFace.vertex2 * uvw.y) + (currentFace.vertex3 * uvw.z);
 
-					currentDistance = (point - origin).length();
+					currentDistance = (point - origin2).length();
 					//Calculates closest triangle
 					if (minDistance > currentDistance && currentDistance > 0.0001) {
 						minFace.resize(1);
@@ -683,10 +734,10 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 						hitPoint = point;
 					}
 				}
-				else if (rayTriangleIntersection(origin, dest, oppositeFace, uvw)) {
+				else if (rayTriangleIntersection(origin2, dest2, oppositeFace, uvw)) {
 					point = (oppositeFace.vertex1 * uvw.x) + (oppositeFace.vertex2 * uvw.y) + (oppositeFace.vertex3 * uvw.z);
 
-					currentDistance = (point - origin).length();
+					currentDistance = (point - origin2).length();
 					//Calculates closest triangle
 					if (minDistance > currentDistance && currentDistance > 0.0001) {
 						minFace.resize(1);
@@ -700,7 +751,7 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 		}
 	}
 	//In case ray hits nothing
-	if (hitPoint == dest) {
+	if (hitPoint == dest2) {
 		minFace.clear();
 	}
   
