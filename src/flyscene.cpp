@@ -364,10 +364,11 @@ void printProgressBar(int prog, int size) {
 	std::cout.flush();
 }
 
-Eigen::Vector3f barycentric(const Eigen::Vector3f& hitPoint, const Eigen::Vector3f& pointA, const Eigen::Vector3f& pointB, const Eigen::Vector3f& pointC) {
-	Eigen::Vector3f u = pointB - pointA;
-	Eigen::Vector3f v = pointC - pointA;
-	Eigen::Vector3f w = hitPoint - pointA;
+vectorThree barycentric(const vectorThree& hitPoint, const vectorThree& pointA, const vectorThree& pointB, const vectorThree& pointC) {
+	vectorThree u = { pointB.x - pointA.x, pointB.y - pointA.y, pointB.z - pointA.z };
+	vectorThree v = { pointC.x - pointA.x, pointC.y - pointA.y, pointC.z - pointA.z };
+	vectorThree w = { hitPoint.x - pointA.x, hitPoint.y - pointA.y, hitPoint.z - pointA.z };
+
 
 	float d00 = u.dot(u);
 	float d01 = u.dot(v);
@@ -379,8 +380,18 @@ Eigen::Vector3f barycentric(const Eigen::Vector3f& hitPoint, const Eigen::Vector
 	float x = (d01 * d21 - d11 * d20) / denom;
 	float y = (d01 * d20 - d00 * d21) / denom;
 	float z = 1.0f - x - y;
-	return Eigen::Vector3f(x, y, z);
+	Eigen::Vector3f h = { x, y, z };
+	vectorThree toret = vectorThree::toVectorThree(h);
+	return toret;
+}
 
+Eigen::Vector3f interpolateNormals(Eigen::Vector3f& vertexANormal, Eigen::Vector3f& vertexBNormal, Eigen::Vector3f& vertexCNormal, vectorThree& barycentricCoordinat) {
+	Eigen::Vector3f barycentricCoordinate = barycentricCoordinat.toEigenThree();
+	Eigen::Vector3f surfaceNormal = Eigen::Vector3f(0.0,0.0,0.0);
+	surfaceNormal.x() = barycentricCoordinate.z() * vertexANormal.x() + barycentricCoordinate.x() * vertexBNormal.x() + barycentricCoordinate.y() * vertexCNormal.x();
+	surfaceNormal.y() = barycentricCoordinate.z() * vertexANormal.y() + barycentricCoordinate.x() * vertexBNormal.y() + barycentricCoordinate.y() * vertexCNormal.y();
+	surfaceNormal.z() = barycentricCoordinate.z() * vertexANormal.z() + barycentricCoordinate.x() * vertexBNormal.z() + barycentricCoordinate.y() * vertexCNormal.z();
+	return surfaceNormal;
 }
 
 //===========================================================================
@@ -730,7 +741,7 @@ Triangle Flyscene::traceRay(vectorThree origin, vectorThree dest, std::vector<Bo
 		if (rayBoxIntersection(currentBox, origin2, dest2)) {
 			std::vector<face> checkFaces;
 			intersectingChildren(currentBox, origin2, dest2, checkFaces);
-			for (const face &currentFace : checkFaces) {
+			for (face& currentFace : checkFaces) {
 				//If it hits a face in that box	
 				face oppositeFace = currentFace;
 				std::swap<vectorThree>(oppositeFace.vertex2, oppositeFace.vertex3);
@@ -738,6 +749,26 @@ Triangle Flyscene::traceRay(vectorThree origin, vectorThree dest, std::vector<Bo
 				if (rayTriangleIntersection(origin2, dest2, currentFace, point, true)) {
 					//This is the point it hits the triangle
 					
+					vectorThree barycentricCoordinate = barycentric(point, currentFace.vertex1 / currentFace.vertex1.z, currentFace.vertex2 / currentFace.vertex2.z, currentFace.vertex3 / currentFace.vertex3.z);
+					/**
+					Eigen::Vector3f vertexANormal = { mesh.getNormal(currentFace.vertex1.x), mesh.getNormal(currentFace.vertex1.y),
+					mesh.getNormal(currentFace.vertex1.z) };
+					Eigen::Vector3f vertexANormal = vertexANormal.normalized();
+
+					Eigen::Vector3f vertexBNormal = { mesh.getNormal(currentFace.vertex2.x), mesh.getNormal(currentFace.vertex2.y),
+					mesh.getNormal(currentFace.vertex2.z) };
+					Eigen::Vector3f vertexBNormal = vertexBNormal.normalized();
+
+					Eigen::Vector3f vertexCNormal = { mesh.getNormal(currentFace.vertex3.x), mesh.getNormal(currentFace.vertex3.y),
+					mesh.getNormal(currentFace.vertex3.z) };
+					Eigen::Vector3f vertexCNormal = vertexCNormal.normalized();
+
+
+					Eigen::Vector3f surfaceNormalEigen = interpolateNormals(vertexANormal, vertexBNormal, vertexCNormal, barycentricCoordinate.toEigenThree);
+					vectorThree surfaceNormal = vectorThree::toVectorThree(surfaceNormalEigen);
+					surfaceNormal = surfaceNormal.normalize();
+
+					*/
 					currentDistance = (point - origin).length();
 					//Calculates closest triangle
 					if (minDistance > currentDistance && currentDistance > 0.0001) {
