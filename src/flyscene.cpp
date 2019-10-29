@@ -364,6 +364,25 @@ void printProgressBar(int prog, int size) {
 	std::cout.flush();
 }
 
+Eigen::Vector3f barycentric(const Eigen::Vector3f& hitPoint, const Eigen::Vector3f& pointA, const Eigen::Vector3f& pointB, const Eigen::Vector3f& pointC) {
+	Eigen::Vector3f u = pointB - pointA;
+	Eigen::Vector3f v = pointC - pointA;
+	Eigen::Vector3f w = hitPoint - pointA;
+
+	float d00 = u.dot(u);
+	float d01 = u.dot(v);
+	float d11 = v.dot(v);
+	float denom = d01 * d01 - d00 * d11;
+	float d20 = w.dot(u);
+	float d21 = w.dot(v);
+
+	float x = (d01 * d21 - d11 * d20) / denom;
+	float y = (d01 * d20 - d00 * d21) / denom;
+	float z = 1.0f - x - y;
+	return Eigen::Vector3f(x, y, z);
+
+}
+
 //===========================================================================
 
 
