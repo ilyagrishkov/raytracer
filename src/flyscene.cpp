@@ -326,9 +326,36 @@ std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh& mesh) {
 Eigen::Vector3f calculateColor(const Tucano::Material::Mtl& mat, const Eigen::Vector3f& lights, 
   const Tucano::Flycamera& flycamera, const face& currentFace, const vectorThree& point) {
 
-  Eigen::Vector3f kd = mat.getDiffuse();
-  Eigen::Vector3f ks = mat.getSpecular();
-  float shininess = mat.getShininess();
+  /*
+
+  float shininess = mat.getDissolveFactor();
+
+  vectorThree normal = currentFace.normal;
+  normal = normal.normalize();
+  vectorThree light_pos = vectorThree::toVectorThree(lights);
+  vectorThree light_dir = light_pos - point;
+  light_dir = light_dir.normalize();
+  float diff = std::max((normal.dot(light_dir)), 0.0f);
+  	
+  Eigen::Vector3f ks = mat.getSpecular() * shininess;
+  Eigen::Vector3f kd = mat.getDiffuse() * (1 - shininess);
+
+  float reductionFactor = 1.0f / MAX_BOUNCES;
+
+  kd[0] -= reductionFactor;
+  kd[1] -= reductionFactor;
+  kd[2] -= reductionFactor;
+
+  //kd = kd * diff;
+
+  return kd + ks;
+
+  */
+
+	float shininess = mat.getShininess();
+	Eigen::Vector3f ks = mat.getSpecular();
+	Eigen::Vector3f kd = mat.getDiffuse();
+  
 
   vectorThree normal = currentFace.normal;
   normal = normal.normalize();
@@ -407,7 +434,7 @@ void Flyscene::initialize(int width, int height) {
   // initiliaze the Phong Shading effect for the Opengl Previewer
   phong.initialize();
 
-  // set the camera's projection matrix
+  // set the camera's projecti on matrix
   flycamera.setPerspectiveMatrix(60.0, width / (float)height, 0.1f, 100.0f);
   flycamera.setViewport(Eigen::Vector2f((float)width, (float)height));
 
@@ -668,6 +695,8 @@ Eigen::Vector3f Flyscene::calColor(std::vector<face> hitFace, vectorThree hitPoi
 	vectorThree hitPointBias;
 	float brightness = 0;
 
+	
+
 	for (Eigen::Vector3f light : lights)
 	{
 		shadowLight = vectorThree::toVectorThree(light);
@@ -696,10 +725,15 @@ Eigen::Vector3f Flyscene::calColor(std::vector<face> hitFace, vectorThree hitPoi
 			}
 		}
 
-		color = calculateColor(mat, light, flycamera, hitFace[0], hitPoint);
+		color += calculateColor(mat, light, flycamera, hitFace[0], hitPoint);
 
 	}
-	color = reflectColor * 0.4 + color + mat.getAmbient();
+
+	Eigen::Vector3f emitter = { 0.0, 0.0, 0.1 };
+
+	color += reflectColor * mat.getDissolveFactor() + mat.getAmbient();
+	color /= lights.size();
+
 	return color * (float(brightness) / float(SOFT_SHADOW_PRECISION));
 }
 
