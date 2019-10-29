@@ -32,6 +32,7 @@ static int load_progress = 0;
 static float RAYLENGTH = 10.0;
 static const int MAX_BOUNCES = 5;
 static const Eigen::Vector3f NO_HIT_COLOR = { 1.0, 1.0, 1.0 };
+
 static const int SOFT_SHADOW_PRECISION = 8;
 
 static std::vector<Tucano::Shapes::Box> leafBoxes;
@@ -323,7 +324,7 @@ public:
   void traceDebugRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes, int bounces);
 
   Triangle traceRay(vectorThree origin, vectorThree dest, std::vector<BoundingBox>& boxes);
-  
+  Eigen::Vector3f calColor(std::vector<face> hitFace, vectorThree hitPoint, std::vector<BoundingBox>& boxes, Eigen::Vector3f reflectColor);
 
   vectorThree calcReflection(vectorThree hitPoint, vectorThree origin, std::vector<face> hitFace);
   Tucano::Flycamera flycamera;
