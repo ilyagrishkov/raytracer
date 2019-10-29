@@ -276,12 +276,19 @@ std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh& mesh) {
     Eigen::Vector3f vertex2 = mesh.getShapeModelMatrix() * (mesh.getVertex(oldFace.vertex_ids[1])).head<3>();
     Eigen::Vector3f vertex3 = mesh.getShapeModelMatrix() * (mesh.getVertex(oldFace.vertex_ids[2])).head<3>();
 
+	Eigen::Vector3f vnoraml1 = mesh.getNormal(oldFace.vertex_ids[0]);
+	Eigen::Vector3f vnoraml2 = mesh.getNormal(oldFace.vertex_ids[1]);
+	Eigen::Vector3f vnoraml3 = mesh.getNormal(oldFace.vertex_ids[2]);
+
     Eigen::Vector3f normal = mesh.getShapeModelMatrix() * oldFace.normal;
 
     face currentFace{
     {vertex1[0], vertex1[1], vertex1[2]},
     {vertex2[0], vertex2[1], vertex2[2]},
     {vertex3[0], vertex3[1], vertex3[2]},
+	{vnoraml1[0], vnoraml1[1], vnoraml1[2]},
+	{vnoraml2[0], vnoraml2[1], vnoraml2[2]},
+	{vnoraml3[0], vnoraml3[1], vnoraml3[2]},
     {normal[0], normal[1], normal[2]},
     oldFace.material_id };
 
