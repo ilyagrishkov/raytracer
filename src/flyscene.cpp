@@ -372,7 +372,7 @@ Eigen::Vector3f barycentric(const Eigen::Vector3f& hitPoint, const Eigen::Vector
 	float d00 = u.dot(u);
 	float d01 = u.dot(v);
 	float d11 = v.dot(v);
-	float denom = d01 * d01 - d00 * d11;
+	float denom = d00 * d11 - d01 * d01;
 	float d20 = w.dot(u);
 	float d21 = w.dot(v);
 
