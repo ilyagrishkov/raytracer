@@ -596,8 +596,6 @@ void Flyscene::traceDebugRay(vectorThree& origin, vectorThree& dest, std::vector
 	traceDebugRay(tracedRay.hitPoint, reflect, boxes, bounces + 1);
 }
 
-
-
 void Flyscene::raytraceScene(int width, int height) {
   auto t1 = std::chrono::high_resolution_clock::now();
   std::cout << "Ray tracing..." << std::endl;

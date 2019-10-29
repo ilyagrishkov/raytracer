@@ -31,7 +31,7 @@ static int load_progress = 0;
 
 static float RAYLENGTH = 10.0;
 static const int MAX_DEPTH = 5;
-static const int MAX_BOUNCES = 0;
+static const int MAX_BOUNCES = 5;
 static const Eigen::Vector3f NO_HIT_COLOR = { 1.0, 1.0, 1.0 };
 
 static const int SOFT_SHADOW_PRECISION = 8;
@@ -321,13 +321,8 @@ public:
    * @return a RGB color
    */
   Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<BoundingBox> &boxes, int bounces);
-  Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<BoundingBox> &boxes, int bounces, float& lengthRay = RAYLENGTH);
 
-  vectorThree rayTracer(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes, int bounces);
-
-  float lightSourceTracer(vectorThree& origin, std::vector<BoundingBox>& boxes);
-
-  bool rayChecker(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes);
+  void traceDebugRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes, int bounces);
 
   Triangle traceRay(vectorThree origin, vectorThree dest, std::vector<BoundingBox>& boxes);
   Eigen::Vector3f calColor(std::vector<face> hitFace, vectorThree hitPoint, std::vector<BoundingBox>& boxes, Eigen::Vector3f reflectColor);
