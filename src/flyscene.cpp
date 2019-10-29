@@ -220,6 +220,14 @@ bool rayTriangleIntersection(vectorThree& origin, vectorThree& dest, const face&
 	vectorThree originTov1 = v1 - origin;
 	vectorThree originTov2 = v2 - origin;
 
+	vectorThree h = dir.cross(v2 - v0);
+	float a = (v1 - v0).dot(h);
+
+	if (a > -FLT_EPSILON && a < FLT_EPSILON) {
+		return false;
+	}
+
+
 	uvw.x = dir.scalarTripleProduct(originTov2, originTov1);
 	if (uvw.x < 0.0) { return false; }
 
@@ -236,11 +244,13 @@ bool rayTriangleIntersection(vectorThree& origin, vectorThree& dest, const face&
 
 	point = ((v0 * uvw.x) + (v1 * uvw.y) + (v2 * uvw.z));
 
-	rayTriangleIntersections++;
+	
 
 	if (!checkFront(origin, dest, point)) {
 		return false;
 	}
+	
+	rayTriangleIntersections++;
 	//point = point + currentFace.normal * 0.00001;
 	return true;
 }
