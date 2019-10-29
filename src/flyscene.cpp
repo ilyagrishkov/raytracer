@@ -718,8 +718,7 @@ Triangle Flyscene::traceRay(vectorThree origin, vectorThree dest, std::vector<Bo
         
 				if (rayTriangleIntersection(origin2, dest2, currentFace, point, true)) {
 					//This is the point it hits the triangle
-					point = (currentFace.vertex1 * uvw.x) + (currentFace.vertex2 * uvw.y) + (currentFace.vertex3 * uvw.z);
-
+					
 					currentDistance = (point - origin).length();
 					//Calculates closest triangle
 					if (minDistance > currentDistance && currentDistance > 0.0001) {
