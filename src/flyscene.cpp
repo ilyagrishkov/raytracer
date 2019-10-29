@@ -286,7 +286,7 @@ std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh& mesh) {
     Eigen::Vector3f vertex2 = mesh.getShapeModelMatrix() * (mesh.getVertex(oldFace.vertex_ids[1])).head<3>();
     Eigen::Vector3f vertex3 = mesh.getShapeModelMatrix() * (mesh.getVertex(oldFace.vertex_ids[2])).head<3>();
 
-    Eigen::Vector3f normal = mesh.getShapeModelMatrix() * oldFace.normal;
+    Eigen::Vector3f normal = oldFace.normal;
 
     face currentFace{
     {vertex1[0], vertex1[1], vertex1[2]},
@@ -653,6 +653,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 	Triangle lightRay = traceRay(origin, dest, boxes);
 	std::vector<face> hitFace = lightRay.hitFace;
 	vectorThree hitPoint = lightRay.hitPoint;
+	Eigen::Vector3f reflectColor = { 0,0,0 };
 
 	//If nothing was hit, return NO_HIT_COLOR
 	if (hitFace.empty()) {
@@ -661,7 +662,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 	
 	if (bounces < MAX_BOUNCES) {
 		dest = calcReflection(hitPoint, origin, hitFace);
-		traceRay(hitPoint, dest, boxes, bounces + 1);
+		reflectColor = traceRay(hitPoint, dest, boxes, bounces + 1);
 
 		//Do something with this reflection
 	}
@@ -704,7 +705,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 		color = calculateColor(mat, light, flycamera, hitFace[0], hitPoint);
 		
 	}
-	color = color + mat.getAmbient();
+	color = reflectColor*0.4 + color + mat.getAmbient();
 	return color * (float(brightness)/float(SOFT_SHADOW_PRECISION));
 }
 
