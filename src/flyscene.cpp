@@ -266,7 +266,7 @@ std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh& mesh) {
   std::vector<BoundingBox> boxes;
 
   BoundingBox currentBox = createBox(myMesh);
-  splitBox(currentBox, 100);
+  splitBox(currentBox, 10);
 
   //printNodes(currentBox);
   boxes.push_back(currentBox);
@@ -356,6 +356,8 @@ void Flyscene::initialize(int width, int height) {
 
   // normalize the model (scale to unit cube and center at origin)
   mesh.normalizeModelMatrix();
+
+  boxes = createBoundingBoxes(mesh);
 
   // pass all the materials to the Phong Shader
   for (int i = 0; i < materials.size(); ++i)
@@ -475,8 +477,6 @@ void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
 	vectorThree myDir = vectorThree::toVectorThree(dir);
 	vectorThree myDestination = vectorThree::toVectorThree(screen_pos);
 
-	std::vector<BoundingBox> boxes = createBoundingBoxes(mesh);
-
 	Triangle hit = traceRay(myOrigin, myDestination, boxes);
 	if (hit.hitFace.empty()) {
 		ray[0].setSize(ray[0].getRadius(), 200);
@@ -551,8 +551,6 @@ void Flyscene::raytraceScene(int width, int height) {
   vectorThree myOrigin = vectorThree::toVectorThree(origin);
 
  //for every pixel shoot a ray from the origin through the pixel coords
-
-  std::vector<BoundingBox> boxes = createBoundingBoxes(mesh);
 
 #pragma omp parallel for schedule(dynamic, 1) num_threads(10)
 

@@ -349,6 +349,8 @@ private:
 
   /// MTL materials
   vector<Tucano::Material::Mtl> materials;
+
+  std::vector<BoundingBox> boxes;
 };
 
 #endif // FLYSCENE
