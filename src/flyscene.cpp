@@ -647,7 +647,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 	for (Eigen::Vector3f light : lights)
 	{
 		shadowLight = vectorThree::toVectorThree(light);
-		hitPointBias = hitPoint + (hitFace[0].normal * 0.008);
+		hitPointBias = hitPoint + (hitFace[0].normal * 0.000001);
 		float radius = 0.15;
 
 		vectorThree ray = shadowLight - hitPointBias;
