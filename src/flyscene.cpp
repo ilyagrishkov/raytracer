@@ -192,23 +192,14 @@ bool rayBoxIntersection(const BoundingBox &box, vectorThree& origin, vectorThree
 bool checkFront(vectorThree origin, vectorThree dest, vectorThree point) {
 	vectorThree frontCheck = point - origin;
 	vectorThree direction = dest - origin;
-	//std::cout << "origin: " << origin.x << " " << origin.y << " " << origin.z << std::endl;
-	//std::cout << "dest: " << dest.x << " " << dest.y << " " << dest.z << std::endl;
-	//std::cout << "point: " << point.x << " " << point.y << " " << point.z << std::endl;
-
-	//std::cout << "point - origin: " <<frontCheck.x << " " << frontCheck.y << " " << frontCheck.z << std::endl;
-	//std::cout << "direction: " << direction.x << " " << direction.y << " " << direction.z << std::endl;
-
+	
 	if (!((direction.x < 0.000001 && frontCheck.x < 0.000001) || (direction.x > 0.000001 && frontCheck.x > 0.000001) || (direction.x == 0 && frontCheck.x == 0))) {
-		//std::cout << "X direction" << std::endl;
 		return false;
 	}
 	if (!((direction.y < 0.000001 && frontCheck.y < 0.000001) || (direction.y > 0.000001 && frontCheck.y > 0.000001) || (direction.y == 0 && frontCheck.y == 0))) {
-		//std::cout << "Y direction" << std::endl;
 		return false;
 	}
 	if (!((direction.z < 0.000001 && frontCheck.z < 0.000001) || (direction.z > 0.000001 && frontCheck.z > 0.000001) || (direction.z == 0 && frontCheck.z == 0))) {
-		//std::cout << "Z direction" << std::endl;
 		return false;
 	}
 
@@ -672,7 +663,7 @@ Triangle Flyscene::traceRay(vectorThree origin, vectorThree dest, std::vector<Bo
   
 	for (const BoundingBox &currentBox : boxes) {
 		//If ray hits a box
-		//if (rayBoxIntersection(currentBox, origin, dest)) {
+		if (rayBoxIntersection(currentBox, origin, dest)) {
 			std::vector<face> checkFaces;
 			intersectingChildren(currentBox, origin, dest, checkFaces);
 			for (const face &currentFace : checkFaces) {
@@ -681,9 +672,7 @@ Triangle Flyscene::traceRay(vectorThree origin, vectorThree dest, std::vector<Bo
 				std::swap<vectorThree>(oppositeFace.vertex2, oppositeFace.vertex3);
         
 				if (rayTriangleIntersection(origin, dest, currentFace, point, true)) {
-					
 					//This is the point it hits the triangle
-					//point = (currentFace.vertex1 * uvw.x) + (currentFace.vertex2 * uvw.y) + (currentFace.vertex3 * uvw.z);
 						currentDistance = (point - origin).length();
 						//Calculates closest triangle
 						if (minDistance > currentDistance && currentDistance > 0.0001) {
@@ -694,19 +683,17 @@ Triangle Flyscene::traceRay(vectorThree origin, vectorThree dest, std::vector<Bo
 						}
 				}
 				else if (rayTriangleIntersection(origin, dest, oppositeFace, point, false)) {
-
 						currentDistance = (point - origin).length();
 						//Calculates closest triangle
 						if (minDistance > currentDistance && currentDistance > 0.0001) {
 							minFace.resize(1);
 							minDistance = currentDistance;
 							minFace[0] = oppositeFace;
-							//minFace[0].normal.z = minFace[0].normal.z * -1;
 							hitPoint = point;
 
 					}
 				}
-		//	}
+			}
 		}
 	}
 	//In case ray hits nothing
