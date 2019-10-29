@@ -187,26 +187,46 @@ bool rayBoxIntersection(const BoundingBox &box, vectorThree& origin, vectorThree
   return true;
 }
 
-bool rayTriangleIntersection(vectorThree& p, vectorThree& q, const face& currentFace, vectorThree& uvw) {
+bool checkFront(vectorThree origin, vectorThree dest, vectorThree point) {
+	vectorThree frontCheck = point - origin;
+	vectorThree direction = dest - origin;
+	
+	if (!((direction.x < 0.000001 && frontCheck.x < 0.000001) || (direction.x > 0.000001 && frontCheck.x > 0.000001) || (direction.x == 0 && frontCheck.x == 0))) {
+		return false;
+	}
+	if (!((direction.y < 0.000001 && frontCheck.y < 0.000001) || (direction.y > 0.000001 && frontCheck.y > 0.000001) || (direction.y == 0 && frontCheck.y == 0))) {
+		return false;
+	}
+	if (!((direction.z < 0.000001 && frontCheck.z < 0.000001) || (direction.z > 0.000001 && frontCheck.z > 0.000001) || (direction.z == 0 && frontCheck.z == 0))) {
+		return false;
+	}
+
+	return true;
+}
+
+bool rayTriangleIntersection(vectorThree& origin, vectorThree& dest, const face& currentFace, vectorThree& point, bool side) {
 
 	rayTriangleChecks++;
+	vectorThree uvw = { 0.0 , 0.0, 0.0 };
+	vectorThree v0;
+	vectorThree v1;
+	vectorThree v2;
+	v0 = currentFace.vertex1;
+	v1 = currentFace.vertex2;
+	v2 = currentFace.vertex3;
 
-	vectorThree a = currentFace.vertex1;
-	vectorThree b = currentFace.vertex2;
-	vectorThree c = currentFace.vertex3;
+	vectorThree dir = dest - origin;
+	vectorThree originTov0 = v0 - origin;
+	vectorThree originTov1 = v1 - origin;
+	vectorThree originTov2 = v2 - origin;
 
-	vectorThree pq = q - p;
-	vectorThree pa = a - p;
-	vectorThree pb = b - p;
-	vectorThree pc = c - p;
-
-	uvw.x = pq.scalarTripleProduct(pc, pb);
+	uvw.x = dir.scalarTripleProduct(originTov2, originTov1);
 	if (uvw.x < 0.0) { return false; }
 
-	uvw.y = pq.scalarTripleProduct(pa, pc);
+	uvw.y = dir.scalarTripleProduct(originTov0, originTov2);
 	if (uvw.y < 0.0) { return false; }
 
-	uvw.z = pq.scalarTripleProduct(pb, pa);
+	uvw.z = dir.scalarTripleProduct(originTov1, originTov0);
 	if (uvw.z < 0.0) { return false; }
 
 	float denom = 1.0 / (uvw.x + uvw.y + uvw.z);
@@ -214,8 +234,14 @@ bool rayTriangleIntersection(vectorThree& p, vectorThree& q, const face& current
 	uvw.y *= denom;
 	uvw.z *= denom;
 
+	point = ((v0 * uvw.x) + (v1 * uvw.y) + (v2 * uvw.z));
+
 	rayTriangleIntersections++;
 
+	if (!checkFront(origin, dest, point)) {
+		return false;
+	}
+	//point = point + currentFace.normal * 0.00001;
 	return true;
 }
 
@@ -356,6 +382,7 @@ void Flyscene::initialize(int width, int height) {
 
   // normalize the model (scale to unit cube and center at origin)
   mesh.normalizeModelMatrix();
+  boxes = createBoundingBoxes(mesh);
 
   boxes = createBoundingBoxes(mesh);
 
@@ -376,13 +403,8 @@ void Flyscene::initialize(int width, int height) {
   // scale the camera representation (frustum) for the ray debug
   camerarep.shapeMatrix()->scale(0.2);
 
-  // the debug ray is a cylinder, set the radius and length of the cylinder
-  for (int i = 0; i < 15; i++) {
-	  ray[i] = Tucano::Shapes::Cylinder(0.01, 0.0);
-  }
-
-  // craete a first debug ray pointing at the center of the screen
-  //createDebugRay(Eigen::Vector2f(width / 2.0, height / 2.0));
+  // create a first debug ray pointing at the center of the screen
+  createDebugRay(Eigen::Vector2f(width / 2.0, height / 2.0));
 
   glEnable(GL_DEPTH_TEST);
 
@@ -419,10 +441,10 @@ void Flyscene::paintGL(void) {
   phong.render(mesh, flycamera, scene_light);
 
   // render the ray and camera representation for ray debug
-  for (int i = 0; i < 15; i++) {
-	  if(ray[i].getHeight() > 0.1)
-		ray[i].render(flycamera, scene_light);
+  for (Tucano::Shapes::Cylinder ray : rays) {
+	ray.render(flycamera, scene_light);
   }
+  
   camerarep.render(flycamera, scene_light);
 
   // render ray tracing light sources as yellow spheres
@@ -456,65 +478,53 @@ void Flyscene::simulate(GLFWwindow *window) {
 }
 
 void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
-	for (int i = 0; i < 15; i++) {
-		ray[i].resetModelMatrix();
-		ray[i] = Tucano::Shapes::Cylinder(0.01, 0.0);
-	}
-
-	float rayLength = RAYLENGTH;
-	ray[0].resetModelMatrix();
-
 	// from pixel position to world coordinates
+	rays.clear();
+
 	Eigen::Vector3f screen_pos = flycamera.screenToWorld(mouse_pos);
 
-	// direction from camera center to click position
-	Eigen::Vector3f dir = (screen_pos - flycamera.getCenter()).normalized();
-
-	// position and orient the cylinder representing the ray
-	ray[0].setOriginOrientation(flycamera.getCenter(), dir);
-
 	vectorThree myOrigin = vectorThree::toVectorThree(flycamera.getCenter());
-	vectorThree myDir = vectorThree::toVectorThree(dir);
 	vectorThree myDestination = vectorThree::toVectorThree(screen_pos);
-
-	Triangle hit = traceRay(myOrigin, myDestination, boxes);
-	if (hit.hitFace.empty()) {
-		ray[0].setSize(ray[0].getRadius(), 200);
-	}
-	else {
-		rayLength = (hit.hitPoint - myOrigin).length();
-		ray[0].setSize(ray[0].getRadius(), rayLength);
-		vectorThree oldHitPoint = hit.hitPoint;
-		vectorThree oldDir = myDir.normalize();
-		for (int i = 1; i < 15; i++) {
-			ray[i].resetModelMatrix();
-
-			vectorThree normal = hit.hitFace[0].normal.normalize();
-			vectorThree refVector = (oldDir - normal * (normal.dot(oldDir)) * 2).normalize();
-			vectorThree sum = oldHitPoint + refVector * 10000;
-
-			hit = traceRay(oldHitPoint, sum, boxes);
-			if (hit.hitFace.empty()) {
-				ray[i].setSize(ray[i].getRadius(), 200);
-				ray[i].setOriginOrientation(vectorThree::toEigenVector3(oldHitPoint), vectorThree::toEigenVector3(refVector));
-				break;
-			}
-			else {
-				rayLength = (oldHitPoint - hit.hitPoint).length();
-				ray[i].setSize(ray[i].getRadius(), rayLength);
-				ray[i].setOriginOrientation(vectorThree::toEigenVector3(oldHitPoint), vectorThree::toEigenVector3(refVector));
-
-				oldHitPoint = hit.hitPoint;
-				oldDir = refVector.normalize();
-			}
-		}
-	}
-
-	// place the camera representation (frustum) on current camera location, 
+	
+	traceDebugRay(myOrigin, myDestination, boxes, 0);
+	
 	camerarep.resetModelMatrix();
 	camerarep.setModelMatrix(flycamera.getViewMatrix().inverse());
+}
 
+void Flyscene::traceDebugRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes, int bounces) {
+	
+	if (bounces >= MAX_BOUNCES) {
+		return;
 	}
+	
+	Tucano::Shapes::Cylinder debugRay = Tucano::Shapes::Cylinder(0.1, 0.0);
+	debugRay.resetModelMatrix();
+	Triangle tracedRay = traceRay(origin, dest, boxes);
+
+	vectorThree dir = vectorThree::toVectorThree(((dest - origin).toEigenThree()).normalized());
+	
+	debugRay.setOriginOrientation(origin.toEigenThree(), dir.toEigenThree());
+
+	float rayLength;
+	if (tracedRay.hitFace.empty()) {
+		rayLength = RAYLENGTH;
+	}
+	else {
+		rayLength = (tracedRay.hitPoint - origin).length();
+	}
+	
+	debugRay.setSize(0.005, rayLength);
+	
+	rays.push_back(debugRay);
+	
+	if (tracedRay.hitFace.empty()) {
+		return;
+	}
+	vectorThree reflect = calcReflection(tracedRay.hitPoint, origin, tracedRay.hitFace);
+
+	traceDebugRay(tracedRay.hitPoint, reflect, boxes, bounces + 1);
+}
 
 
 
@@ -574,11 +584,7 @@ void Flyscene::raytraceScene(int width, int height) {
 		myScreen_coords.y = coords[1];
 		myScreen_coords.z = coords[2];
 
-		Eigen::Vector3f temp = traceRay(myOrigin, myScreen_coords, boxes, 0);
-		if (temp[1] == -1) {
-			temp = NO_HIT_COLOR;
-		}
-		pixel_data[i][j] = temp;
+		pixel_data[i][j] = traceRay(myOrigin, myScreen_coords, boxes, 0);
 		
     }
   }
@@ -612,35 +618,24 @@ void Flyscene::raytraceScene(int width, int height) {
 
 
 // Traces ray
-Eigen::Vector3f Flyscene::traceRay(vectorThree& origin,
-	vectorThree& dest, std::vector<BoundingBox>& boxes, int bounces, float& rayLength) {
+Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::vector<BoundingBox> &boxes, 
+									int bounces) {
 	//Search for hit
 	Triangle lightRay = traceRay(origin, dest, boxes);
 	std::vector<face> hitFace = lightRay.hitFace;
 	vectorThree hitPoint = lightRay.hitPoint;
-	rayLength = (hitPoint - origin).length();
 
 	//If nothing was hit, return NO_HIT_COLOR
 	if (hitFace.empty()) {
 		return NO_HIT_COLOR;
 	}
-
+	
 	if (bounces < MAX_BOUNCES) {
-		vectorThree direction = (hitPoint - origin) / direction.length();
-
-		vectorThree normal = hitFace[0].normal / normal.length();
-
-		vectorThree refVector = direction - normal*(normal.dot(direction)*2);
-
-		vectorThree dest = hitPoint + refVector * 10000;
-
-		float rayLength = 10000;
-
-		traceRay(hitPoint, dest, boxes, bounces + 1, rayLength);
+		dest = calcReflection(hitPoint, origin, hitFace);
+		traceRay(hitPoint, dest, boxes, bounces + 1);
 
 		//Do something with this reflection
 	}
-
 	Eigen::Vector3f color = { 0.0, 0.0, 0.0 };
 
 	int matId = hitFace[0].material_id;
@@ -684,7 +679,18 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree& origin,
 	return color * (float(brightness)/float(SOFT_SHADOW_PRECISION));
 }
 
-Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes) {
+vectorThree Flyscene::calcReflection(vectorThree hitPoint, vectorThree origin, std::vector<face> hitFace) {
+	vectorThree direction = (hitPoint - origin).normalize();
+
+	vectorThree normal = hitFace[0].normal.normalize();
+
+	vectorThree refVector = (direction - normal*(normal.dot(direction)*2)).normalize();
+
+	vectorThree dest = hitPoint + refVector * 10000;
+	return dest;
+	}
+
+Triangle Flyscene::traceRay(vectorThree origin, vectorThree dest, std::vector<BoundingBox>& boxes) {
 	vectorThree uvw, point, hitPoint;
 	std::vector<face> minFace;
 	float currentDistance;
@@ -708,13 +714,12 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 			for (const face &currentFace : checkFaces) {
 				//If it hits a face in that box	
 				face oppositeFace = currentFace;
-				std::swap<vectorThree>(oppositeFace.vertex1, oppositeFace.vertex2);
+				std::swap<vectorThree>(oppositeFace.vertex2, oppositeFace.vertex3);
         
-				if (rayTriangleIntersection(origin2, dest2, currentFace, uvw)) {
+				if (rayTriangleIntersection(origin2, dest2, currentFace, point, true)) {
 					//This is the point it hits the triangle
-					point = (currentFace.vertex1 * uvw.x) + (currentFace.vertex2 * uvw.y) + (currentFace.vertex3 * uvw.z);
-
-					currentDistance = (point - origin2).length();
+					
+					currentDistance = (point - origin).length();
 					//Calculates closest triangle
 					if (minDistance > currentDistance && currentDistance > 0.0001) {
 						minFace.resize(1);
@@ -723,16 +728,14 @@ Triangle Flyscene::traceRay(vectorThree& origin, vectorThree& dest, std::vector<
 						hitPoint = point;
 					}
 				}
-				else if (rayTriangleIntersection(origin2, dest2, oppositeFace, uvw)) {
-					point = (oppositeFace.vertex1 * uvw.x) + (oppositeFace.vertex2 * uvw.y) + (oppositeFace.vertex3 * uvw.z);
-
-					currentDistance = (point - origin2).length();
-					//Calculates closest triangle
-					if (minDistance > currentDistance && currentDistance > 0.0001) {
-						minFace.resize(1);
-						minDistance = currentDistance;
-						minFace[0] = currentFace;
-						hitPoint = point;
+				else if (rayTriangleIntersection(origin2, dest2, oppositeFace, point, false)) {
+						currentDistance = (point - origin).length();
+						//Calculates closest triangle
+						if (minDistance > currentDistance && currentDistance > 0.0001) {
+							minFace.resize(1);
+							minDistance = currentDistance;
+							minFace[0] = oppositeFace;
+							hitPoint = point;
 
 					}
 				}

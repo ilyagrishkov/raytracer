@@ -29,8 +29,7 @@ static int load_progress = 0;
 
 
 static float RAYLENGTH = 10.0;
-static const int MAX_DEPTH = 5;
-static const int MAX_BOUNCES = 1;
+static const int MAX_BOUNCES = 5;
 static const Eigen::Vector3f NO_HIT_COLOR = { 1.0, 1.0, 1.0 };
 static const int SOFT_SHADOW_PRECISION = 8;
 
@@ -193,7 +192,7 @@ struct vectorThree {
 	}
 
 	float scalarTripleProduct(vectorThree v, vectorThree w) {
-		return cross(v).dot(w);
+		return (this->cross(v)).dot(w);
 	}
 
 	float length() {
@@ -204,10 +203,12 @@ struct vectorThree {
 		vectorThree out = { old(0), old(1), old(2) };
 		return out;
 	}
-	static Eigen::Vector3f toEigenVector3(vectorThree old) {
-		Eigen::Vector3f out = Eigen::Vector3f( old.x, old.y, old.z );
+
+	Eigen::Vector3f toEigenThree() {
+		Eigen::Vector3f out = { x, y, z};
 		return out;
 	}
+
 };
 
 struct face {
@@ -312,10 +313,14 @@ public:
    * @param dest Other point on the ray, usually screen coordinates
    * @return a RGB color
    */
-  Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<BoundingBox> &boxes, int bounces, float& lengthRay = RAYLENGTH);
+  Eigen::Vector3f traceRay(vectorThree &origin, vectorThree &dest, std::vector<BoundingBox> &boxes, int bounces);
 
-  Triangle traceRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes);
+  void traceDebugRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes, int bounces);
+
+  Triangle traceRay(vectorThree origin, vectorThree dest, std::vector<BoundingBox>& boxes);
   
+
+  vectorThree calcReflection(vectorThree hitPoint, vectorThree origin, std::vector<face> hitFace);
   Tucano::Flycamera flycamera;
 
 private:
@@ -342,14 +347,13 @@ private:
   Tucano::Camera scene_light;
 
   /// A very thin cylinder to draw a debug ray
-  Tucano::Shapes::Cylinder ray[15];
+  std::vector<Tucano::Shapes::Cylinder> rays;
 
   // Scene meshes
   Tucano::Mesh mesh;
 
   /// MTL materials
   vector<Tucano::Material::Mtl> materials;
-
   std::vector<BoundingBox> boxes;
 };
 
