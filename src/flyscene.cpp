@@ -408,7 +408,7 @@ void Flyscene::initialize(int width, int height) {
   // initiliaze the Phong Shading effect for the Opengl Previewer
   phong.initialize();
 
-  // set the camera's projection matrix
+  // set the camera's projecti on matrix
   flycamera.setPerspectiveMatrix(60.0, width / (float)height, 0.1f, 100.0f);
   flycamera.setViewport(Eigen::Vector2f((float)width, (float)height));
 
@@ -697,9 +697,10 @@ Eigen::Vector3f Flyscene::calColor(std::vector<face> hitFace, vectorThree hitPoi
 			}
 		}
 
-		color = calculateColor(mat, light, flycamera, hitFace[0], hitPoint);
+		color += calculateColor(mat, light, flycamera, hitFace[0], hitPoint);
 
 	}
+	color /= lights.size();
 	color = reflectColor * 0.4 + color + mat.getAmbient();
 	return color * (float(brightness) / float(SOFT_SHADOW_PRECISION));
 }
