@@ -189,13 +189,42 @@ bool rayBoxIntersection(const BoundingBox &box, vectorThree& origin, vectorThree
   return true;
 }
 
-bool rayTriangleIntersection(vectorThree& origin, vectorThree& dest, const face& currentFace, vectorThree& uvw) {
+bool checkFront(vectorThree origin, vectorThree dest, vectorThree point) {
+	vectorThree frontCheck = point - origin;
+	vectorThree direction = dest - origin;
+	//std::cout << "origin: " << origin.x << " " << origin.y << " " << origin.z << std::endl;
+	//std::cout << "dest: " << dest.x << " " << dest.y << " " << dest.z << std::endl;
+	//std::cout << "point: " << point.x << " " << point.y << " " << point.z << std::endl;
+
+	//std::cout << "point - origin: " <<frontCheck.x << " " << frontCheck.y << " " << frontCheck.z << std::endl;
+	//std::cout << "direction: " << direction.x << " " << direction.y << " " << direction.z << std::endl;
+
+	if (!((direction.x < 0.000001 && frontCheck.x < 0.000001) || (direction.x > 0.000001 && frontCheck.x > 0.000001) || (direction.x == 0 && frontCheck.x == 0))) {
+		//std::cout << "X direction" << std::endl;
+		return false;
+	}
+	if (!((direction.y < 0.000001 && frontCheck.y < 0.000001) || (direction.y > 0.000001 && frontCheck.y > 0.000001) || (direction.y == 0 && frontCheck.y == 0))) {
+		//std::cout << "Y direction" << std::endl;
+		return false;
+	}
+	if (!((direction.z < 0.000001 && frontCheck.z < 0.000001) || (direction.z > 0.000001 && frontCheck.z > 0.000001) || (direction.z == 0 && frontCheck.z == 0))) {
+		//std::cout << "Z direction" << std::endl;
+		return false;
+	}
+
+	return true;
+}
+
+bool rayTriangleIntersection(vectorThree& origin, vectorThree& dest, const face& currentFace, vectorThree& point, bool side) {
 
 	rayTriangleChecks++;
-
-	vectorThree v0 = currentFace.vertex1;
-	vectorThree v1 = currentFace.vertex2;
-	vectorThree v2 = currentFace.vertex3;
+	vectorThree uvw = { 0.0 , 0.0, 0.0 };
+	vectorThree v0;
+	vectorThree v1;
+	vectorThree v2;
+	v0 = currentFace.vertex1;
+	v1 = currentFace.vertex2;
+	v2 = currentFace.vertex3;
 
 	vectorThree dir = dest - origin;
 	vectorThree originTov0 = v0 - origin;
@@ -216,8 +245,14 @@ bool rayTriangleIntersection(vectorThree& origin, vectorThree& dest, const face&
 	uvw.y *= denom;
 	uvw.z *= denom;
 
+	point = ((v0 * uvw.x) + (v1 * uvw.y) + (v2 * uvw.z));
+
 	rayTriangleIntersections++;
 
+	if (!checkFront(origin, dest, point)) {
+		return false;
+	}
+	//point = point + currentFace.normal * 0.00001;
 	return true;
 }
 
@@ -451,9 +486,7 @@ void Flyscene::traceDebugRay(vectorThree& origin, vectorThree& dest, std::vector
 	
 	Tucano::Shapes::Cylinder debugRay = Tucano::Shapes::Cylinder(0.1, 0.0);
 	debugRay.resetModelMatrix();
-	std::cout << "origin: " << dest.x << std::endl;
 	Triangle tracedRay = traceRay(origin, dest, boxes);
-	std::cout << "origin: " << dest.x << std::endl;
 
 	vectorThree dir = vectorThree::toVectorThree(((dest - origin).toEigenThree()).normalized());
 	
@@ -625,7 +658,6 @@ vectorThree Flyscene::calcReflection(vectorThree hitPoint, vectorThree origin, s
 	return dest;
 	}
 
-
 Triangle Flyscene::traceRay(vectorThree origin, vectorThree dest, std::vector<BoundingBox>& boxes) {
 	vectorThree uvw, point, hitPoint;
 	std::vector<face> minFace;
@@ -640,7 +672,7 @@ Triangle Flyscene::traceRay(vectorThree origin, vectorThree dest, std::vector<Bo
   
 	for (const BoundingBox &currentBox : boxes) {
 		//If ray hits a box
-		if (rayBoxIntersection(currentBox, origin, dest)) {
+		//if (rayBoxIntersection(currentBox, origin, dest)) {
 			std::vector<face> checkFaces;
 			intersectingChildren(currentBox, origin, dest, checkFaces);
 			for (const face &currentFace : checkFaces) {
@@ -648,35 +680,33 @@ Triangle Flyscene::traceRay(vectorThree origin, vectorThree dest, std::vector<Bo
 				face oppositeFace = currentFace;
 				std::swap<vectorThree>(oppositeFace.vertex2, oppositeFace.vertex3);
         
-				if (rayTriangleIntersection(origin, dest, currentFace, uvw)) {
+				if (rayTriangleIntersection(origin, dest, currentFace, point, true)) {
 					
 					//This is the point it hits the triangle
-					point = (currentFace.vertex1 * uvw.x) + (currentFace.vertex2 * uvw.y) + (currentFace.vertex3 * uvw.z);
+					//point = (currentFace.vertex1 * uvw.x) + (currentFace.vertex2 * uvw.y) + (currentFace.vertex3 * uvw.z);
+						currentDistance = (point - origin).length();
+						//Calculates closest triangle
+						if (minDistance > currentDistance && currentDistance > 0.0001) {
+							minFace.resize(1);
+							minDistance = currentDistance;
+							minFace[0] = currentFace;
+							hitPoint = point;
+						}
+				}
+				else if (rayTriangleIntersection(origin, dest, oppositeFace, point, false)) {
 
-					currentDistance = (point - origin).length();
-					//Calculates closest triangle
-					if (minDistance > currentDistance && currentDistance > 0.0001) {
-						minFace.resize(1);
-						minDistance = currentDistance;
-						minFace[0] = currentFace;
-						hitPoint = point;
+						currentDistance = (point - origin).length();
+						//Calculates closest triangle
+						if (minDistance > currentDistance && currentDistance > 0.0001) {
+							minFace.resize(1);
+							minDistance = currentDistance;
+							minFace[0] = oppositeFace;
+							//minFace[0].normal.z = minFace[0].normal.z * -1;
+							hitPoint = point;
+
 					}
 				}
-				else if (rayTriangleIntersection(origin, dest, oppositeFace, uvw)) {
-					
-					point = (currentFace.vertex1 * uvw.x) + (currentFace.vertex3 * uvw.y) + (currentFace.vertex2 * uvw.z);
-
-					currentDistance = (point - origin).length();
-					//Calculates closest triangle
-					if (minDistance > currentDistance && currentDistance > 0.0001) {
-						minFace.resize(1);
-						minDistance = currentDistance;
-						minFace[0] = currentFace;
-						hitPoint = point;
-
-					}
-				}
-			}
+		//	}
 		}
 	}
 	//In case ray hits nothing
