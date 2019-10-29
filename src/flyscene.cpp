@@ -64,6 +64,8 @@ BoundingBox createBox(const std::vector<face>& mesh) {
   return currentBox;
 }
 
+Eigen::Vector3f noHitMultiplier = { 0, 0, 0 };
+
 bool sorterX(face i, face j) {
   return i.vertex1.x < j.vertex1.x;
 }
@@ -410,7 +412,6 @@ void Flyscene::initialize(int width, int height) {
     phong.addMaterial(materials[i]);
 
 
-
   // set the color and size of the sphere to represent the light sources
   // same sphere is used for all sources
   lightrep.setColor(Eigen::Vector4f(1.0, 1.0, 0.0, 1.0));
@@ -442,6 +443,54 @@ void Flyscene::initialize(int width, int height) {
 
 }
 
+void Flyscene::changeObject(void)
+{
+	lights.clear();
+
+	lights.push_back(Eigen::Vector3f(-1.0, 1.0, 1.0));
+}
+
+void Flyscene::shiftBgroundred(void)
+{
+	noHitMultiplier = Eigen::Vector3f{ 1, 0, 0 };
+	glClearColor(0.9, 0.0, 0.0, 0.0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+
+void Flyscene::shiftBgroundblue(void)
+{
+	noHitMultiplier = Eigen::Vector3f{ 0, 0, 1 };
+	glClearColor(0.0, 0.0, 0.9, 0.0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+
+void Flyscene::shiftBgroundgreen(void)
+{
+	noHitMultiplier = Eigen::Vector3f{ 0, 1, 0 };
+	glClearColor(0.0, 0.9, 0.0, 0.0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+
+void Flyscene::shiftBgroundwhite(void)
+{
+	noHitMultiplier = Eigen::Vector3f{ 1, 1, 1 };
+	glClearColor(0.9, 0.9, 0.9, 0.0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+
+void Flyscene::shiftBgroundblack(void)
+{
+	noHitMultiplier = Eigen::Vector3f{ 0, 0, 0 };
+
+	glClearColor(0.0, 0.0, 0.0, 0.0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+
 void Flyscene::paintGL(void) {
 
   // update the camera view matrix with the last mouse interactions
@@ -472,6 +521,7 @@ void Flyscene::paintGL(void) {
     lightrep.modelMatrix()->translate(lights[i]);
     lightrep.render(flycamera, scene_light);
   }
+  
 
   // render coordinate system at lower right corner
   flycamera.renderAtCorner();
@@ -647,7 +697,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 
 	//If nothing was hit, return NO_HIT_COLOR
 	if (hitFace.empty()) {
-		return NO_HIT_COLOR;
+		return NO_HIT_COLOR.cwiseProduct(noHitMultiplier);
 	}
 	
 	if (bounces < MAX_BOUNCES) {

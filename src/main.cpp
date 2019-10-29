@@ -5,8 +5,8 @@
 #include "flyscene.hpp"
 #include <iostream>
 
-#define WINDOW_WIDTH 500
-#define WINDOW_HEIGHT 500
+#define WINDOW_WIDTH 1000
+#define WINDOW_HEIGHT 1000
 
 Flyscene *flyscene;
 Eigen::Vector2f mouse_pos = Eigen::Vector2f::Zero();
@@ -49,23 +49,41 @@ void initialize(void) {
   std::cout << "SPACE: Shoot debug ray from mouse cursor position." << std::endl;
   std::cout << "L    : Add new light source at current camera position."
             << std::endl;
+  std::cout << "C		 : Reset the lighting on the scene." << std::endl;
   std::cout << "T    : Ray trace the scene." << std::endl;
+  std::cout << "Y    : BG Color = Red" << std::endl;
+  std::cout << "U   : BG Color = Green" << std::endl;
+  std::cout << "I    : BG Color = Blue" << std::endl;
+  std::cout << "O    : BG Color = White" << std::endl;
+  std::cout << "P    : BG Color = Black" << std::endl;
   std::cout << "Esc  : Close application." << std::endl;
   std::cout << " ********************************* " << std::endl;
 }
 
 void keyCallback(GLFWwindow *window, int key, int scancode, int action,
                  int mods) {
-  if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-    glfwSetWindowShouldClose(window, 1);
-  else if (key == GLFW_KEY_R && action == GLFW_PRESS)
-    flyscene->getCamera()->reset();
-  else if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
-    flyscene->createDebugRay(mouse_pos);
-  else if (key == GLFW_KEY_L && action == GLFW_PRESS)
-    flyscene->addLight();
-  else if (key == GLFW_KEY_T && action == GLFW_PRESS)
-    flyscene->raytraceScene();
+	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+		glfwSetWindowShouldClose(window, 1);
+	else if (key == GLFW_KEY_R && action == GLFW_PRESS)
+		flyscene->getCamera()->reset();
+	else if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
+		flyscene->createDebugRay(mouse_pos);
+	else if (key == GLFW_KEY_L && action == GLFW_PRESS)
+		flyscene->addLight();
+	else if (key == GLFW_KEY_T && action == GLFW_PRESS)
+		flyscene->raytraceScene();
+	else if (key == GLFW_KEY_C && action == GLFW_PRESS)
+		flyscene->changeObject();
+	else if (key == GLFW_KEY_Y && action == GLFW_PRESS)
+		flyscene->shiftBgroundred();
+	else if (key == GLFW_KEY_U && action == GLFW_PRESS)
+		flyscene->shiftBgroundgreen();
+	else if (key == GLFW_KEY_I && action == GLFW_PRESS)
+		flyscene->shiftBgroundblue();
+	else if (key == GLFW_KEY_O && action == GLFW_PRESS)
+		flyscene->shiftBgroundwhite();
+	else if (key == GLFW_KEY_P && action == GLFW_PRESS)
+		flyscene->shiftBgroundblack();
 }
 
 static void mouseButtonCallback(GLFWwindow *window, int button, int action,

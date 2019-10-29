@@ -31,7 +31,7 @@ static int load_progress = 0;
 static float RAYLENGTH = 10.0;
 static const int MAX_BOUNCES = 5;
 static const Eigen::Vector3f NO_HIT_COLOR = { 1.0, 1.0, 1.0 };
-static const int SOFT_SHADOW_PRECISION = 8;
+static const int SOFT_SHADOW_PRECISION = 16;
 
 struct vectorFour {
 	float x;
@@ -279,6 +279,7 @@ public:
    **/
   virtual void paintGL();
 
+
   /**
    * Perform a single simulation step.
    **/
@@ -306,6 +307,18 @@ public:
    * @brief raytrace your scene from current camera position   
    */
   void raytraceScene(int width = 0, int height = 0);
+
+  void changeObject();
+
+  void shiftBgroundred();
+
+  void shiftBgroundblue();
+
+  void shiftBgroundgreen();
+
+  void shiftBgroundwhite();
+
+  void shiftBgroundblack();
 
   /**
    * @brief trace a single ray from the camera passing through dest
