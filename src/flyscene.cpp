@@ -12,7 +12,14 @@ void printNodes(BoundingBox &currentBox) {
   //std::cout << currentBox.xMin << " " <<  currentBox.xMin << " " << currentBox.yMin << " " << currentBox.yMax << " " << currentBox.zMin << " " << currentBox.zMax << " FACES: " << currentBox.getFaces().size() << std::endl;
   
   if(currentBox.children.size() == 0) {
-    std::cout << "VOLUME: " << currentBox.getVolume() << " FACES: " << currentBox.faces.size() << std::endl;
+	  Tucano::Shapes::Box box = Tucano::Shapes::Box(currentBox.getX(), currentBox.getY(), currentBox.getZ());
+	  Eigen::Affine3f boxMatrix = box.getShapeModelMatrix();
+
+	  boxMatrix.translate(currentBox.getCenter());
+
+	  box.setModelMatrix(boxMatrix);
+
+	  leafBoxes.push_back(box);
   
   }
   for (BoundingBox &box : currentBox.children) {
@@ -220,6 +227,14 @@ bool rayTriangleIntersection(vectorThree& origin, vectorThree& dest, const face&
 	vectorThree originTov1 = v1 - origin;
 	vectorThree originTov2 = v2 - origin;
 
+	vectorThree h = dir.cross(v2 - v0);
+	float a = (v1 - v0).dot(h);
+
+	if (a > -FLT_EPSILON && a < FLT_EPSILON) {
+		return false;
+	}
+
+
 	uvw.x = dir.scalarTripleProduct(originTov2, originTov1);
 	if (uvw.x < 0.0) { return false; }
 
@@ -236,11 +251,13 @@ bool rayTriangleIntersection(vectorThree& origin, vectorThree& dest, const face&
 
 	point = ((v0 * uvw.x) + (v1 * uvw.y) + (v2 * uvw.z));
 
-	rayTriangleIntersections++;
+	
 
 	if (!checkFront(origin, dest, point)) {
 		return false;
 	}
+	
+	rayTriangleIntersections++;
 	//point = point + currentFace.normal * 0.00001;
 	return true;
 }
@@ -276,13 +293,7 @@ std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh& mesh) {
     Eigen::Vector3f vertex2 = mesh.getShapeModelMatrix() * (mesh.getVertex(oldFace.vertex_ids[1])).head<3>();
     Eigen::Vector3f vertex3 = mesh.getShapeModelMatrix() * (mesh.getVertex(oldFace.vertex_ids[2])).head<3>();
 
-    //Eigen::Vector3f normal = mesh.getShapeModelMatrix() * oldFace.normal;
-
-	//Eigen::Vector3f vertex1 = (mesh.getVertex(oldFace.vertex_ids[0])).head<3>();
-	//Eigen::Vector3f vertex2 = (mesh.getVertex(oldFace.vertex_ids[1])).head<3>();
-	//Eigen::Vector3f vertex3 = (mesh.getVertex(oldFace.vertex_ids[2])).head<3>();
-
-	Eigen::Vector3f normal = oldFace.normal;
+    Eigen::Vector3f normal = oldFace.normal;
 
     face currentFace{
     {vertex1[0], vertex1[1], vertex1[2]},
@@ -402,13 +413,11 @@ void Flyscene::initialize(int width, int height) {
 
   // load the OBJ file and materials
   Tucano::MeshImporter::loadObjFile(mesh, materials,
-									"resources/models/dodgeColorTest.obj");
+									"resources/models/pillars.obj");
 
 
   // normalize the model (scale to unit cube and center at origin)
   mesh.normalizeModelMatrix();
-  boxes = createBoundingBoxes(mesh);
-
   boxes = createBoundingBoxes(mesh);
 
   // pass all the materials to the Phong Shader
@@ -469,6 +478,10 @@ void Flyscene::paintGL(void) {
   for (Tucano::Shapes::Cylinder ray : rays) {
 	ray.render(flycamera, scene_light);
   }
+
+  for (Tucano::Shapes::Box box : leafBoxes) {
+	  box.render(flycamera, scene_light);
+  }
   
   camerarep.render(flycamera, scene_light);
 
@@ -526,7 +539,7 @@ void Flyscene::traceDebugRay(vectorThree& origin, vectorThree& dest, std::vector
 	Tucano::Shapes::Cylinder debugRay = Tucano::Shapes::Cylinder(0.1, 0.0);
 	debugRay.resetModelMatrix();
 	Triangle tracedRay = traceRay(origin, dest, boxes);
-
+	Eigen::Vector3f reflectColor = { 0.0, 0.0, 0.0};
 	vectorThree dir = vectorThree::toVectorThree(((dest - origin).toEigenThree()).normalized());
 	
 	debugRay.setOriginOrientation(origin.toEigenThree(), dir.toEigenThree());
@@ -534,12 +547,17 @@ void Flyscene::traceDebugRay(vectorThree& origin, vectorThree& dest, std::vector
 	float rayLength;
 	if (tracedRay.hitFace.empty()) {
 		rayLength = RAYLENGTH;
+		reflectColor = NO_HIT_COLOR;
 	}
 	else {
+		dest = calcReflection(tracedRay.hitPoint, origin, tracedRay.hitFace);
+		reflectColor = traceRay(tracedRay.hitPoint, dest, boxes, bounces + 1);
 		rayLength = (tracedRay.hitPoint - origin).length();
 	}
 	
 	debugRay.setSize(0.005, rayLength);
+	Eigen::Vector4f thisColor = { reflectColor[0], reflectColor[1], reflectColor[2], 0.0 };
+	debugRay.setColor(thisColor);
 	
 	rays.push_back(debugRay);
 	
@@ -641,26 +659,7 @@ void Flyscene::raytraceScene(int width, int height) {
 }
 
 
-
-// Traces ray
-Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::vector<BoundingBox> &boxes, 
-									int bounces) {
-	//Search for hit
-	Triangle lightRay = traceRay(origin, dest, boxes);
-	std::vector<face> hitFace = lightRay.hitFace;
-	vectorThree hitPoint = lightRay.hitPoint;
-
-	//If nothing was hit, return NO_HIT_COLOR
-	if (hitFace.empty()) {
-		return NO_HIT_COLOR;
-	}
-	
-	if (bounces < MAX_BOUNCES) {
-		dest = calcReflection(hitPoint, origin, hitFace);
-		traceRay(hitPoint, dest, boxes, bounces + 1);
-
-		//Do something with this reflection
-	}
+Eigen::Vector3f Flyscene::calColor(std::vector<face> hitFace, vectorThree hitPoint, std::vector<BoundingBox>& boxes, Eigen::Vector3f reflectColor) {
 	Eigen::Vector3f color = { 0.0, 0.0, 0.0 };
 
 	int matId = hitFace[0].material_id;
@@ -668,7 +667,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 	vectorThree shadowLight;
 	vectorThree hitPointBias;
 	float brightness = 0;
-	
+
 	for (Eigen::Vector3f light : lights)
 	{
 		shadowLight = vectorThree::toVectorThree(light);
@@ -684,7 +683,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 
 		for (int i = 0; i <= SOFT_SHADOW_PRECISION; i++) {
 
-			float diskX = shadowLight.x + radius * cos((M_PI / (SOFT_SHADOW_PRECISION /2)) * i) * a.x + radius * sin((M_PI / (SOFT_SHADOW_PRECISION / 2)) * i) * b.x;
+			float diskX = shadowLight.x + radius * cos((M_PI / (SOFT_SHADOW_PRECISION / 2)) * i) * a.x + radius * sin((M_PI / (SOFT_SHADOW_PRECISION / 2)) * i) * b.x;
 			float diskY = shadowLight.y + radius * cos((M_PI / (SOFT_SHADOW_PRECISION / 2)) * i) * a.y + radius * sin((M_PI / (SOFT_SHADOW_PRECISION / 2)) * i) * b.y;
 			float diskZ = shadowLight.z + radius * cos((M_PI / (SOFT_SHADOW_PRECISION / 2)) * i) * a.z + radius * sin((M_PI / (SOFT_SHADOW_PRECISION / 2)) * i) * b.z;
 
@@ -698,10 +697,33 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 		}
 
 		color = calculateColor(mat, light, flycamera, hitFace[0], hitPoint);
-		
+
 	}
-	color = color + mat.getAmbient();
-	return color * (float(brightness)/float(SOFT_SHADOW_PRECISION));
+	color = reflectColor * 0.4 + color + mat.getAmbient();
+	return color * (float(brightness) / float(SOFT_SHADOW_PRECISION));
+}
+
+// Traces ray
+Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::vector<BoundingBox> &boxes, 
+									int bounces) {
+	//Search for hit
+	Triangle lightRay = traceRay(origin, dest, boxes);
+	std::vector<face> hitFace = lightRay.hitFace;
+	vectorThree hitPoint = lightRay.hitPoint;
+	Eigen::Vector3f reflectColor = { 0,0,0 };
+
+	//If nothing was hit, return NO_HIT_COLOR
+	if (hitFace.empty()) {
+		return NO_HIT_COLOR;
+	}
+	
+	if (bounces < MAX_BOUNCES) {
+		dest = calcReflection(hitPoint, origin, hitFace);
+		reflectColor = traceRay(hitPoint, dest, boxes, bounces + 1);
+
+		//Do something with this reflection
+	}
+	return calColor(hitFace, hitPoint, boxes, reflectColor);
 }
 
 vectorThree Flyscene::calcReflection(vectorThree hitPoint, vectorThree origin, std::vector<face> hitFace) {
