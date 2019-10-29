@@ -398,7 +398,7 @@ Eigen::Vector3f interpolateNormals(Eigen::Vector3f& vertexANormal, Eigen::Vector
 	surfaceNormal.x() = barycentricCoordinate.z() * vertexANormal.x() + barycentricCoordinate.x() * vertexBNormal.x() + barycentricCoordinate.y() * vertexCNormal.x();
 	surfaceNormal.y() = barycentricCoordinate.z() * vertexANormal.y() + barycentricCoordinate.x() * vertexBNormal.y() + barycentricCoordinate.y() * vertexCNormal.y();
 	surfaceNormal.z() = barycentricCoordinate.z() * vertexANormal.z() + barycentricCoordinate.x() * vertexBNormal.z() + barycentricCoordinate.y() * vertexCNormal.z();
-	return surfaceNormal;
+	return surfaceNormal.normalized();
 }
 
 //===========================================================================
@@ -756,26 +756,18 @@ Triangle Flyscene::traceRay(vectorThree origin, vectorThree dest, std::vector<Bo
 				if (rayTriangleIntersection(origin2, dest2, currentFace, point, true)) {
 					//This is the point it hits the triangle
 					
-					vectorThree barycentricCoordinate = barycentric(point, currentFace.vertex1 / currentFace.vertex1.z, currentFace.vertex2 / currentFace.vertex2.z, currentFace.vertex3 / currentFace.vertex3.z);
-					/**
-					Eigen::Vector3f vertexANormal = { mesh.getNormal(currentFace.vertex1.x), mesh.getNormal(currentFace.vertex1.y),
-					mesh.getNormal(currentFace.vertex1.z) };
-					Eigen::Vector3f vertexANormal = vertexANormal.normalized();
+					vectorThree barycentricCoordinate = barycentric(point, currentFace.vertex1, currentFace.vertex2, currentFace.vertex3);
+					
+					Eigen::Vector3f vertexANormal = currentFace.vnormal1.toEigenThree().normalized();
 
-					Eigen::Vector3f vertexBNormal = { mesh.getNormal(currentFace.vertex2.x), mesh.getNormal(currentFace.vertex2.y),
-					mesh.getNormal(currentFace.vertex2.z) };
-					Eigen::Vector3f vertexBNormal = vertexBNormal.normalized();
+					Eigen::Vector3f vertexBNormal = currentFace.vnormal2.toEigenThree().normalized();
 
-					Eigen::Vector3f vertexCNormal = { mesh.getNormal(currentFace.vertex3.x), mesh.getNormal(currentFace.vertex3.y),
-					mesh.getNormal(currentFace.vertex3.z) };
-					Eigen::Vector3f vertexCNormal = vertexCNormal.normalized();
+					Eigen::Vector3f vertexCNormal = currentFace.vnormal3.toEigenThree().normalized();
 
+					Eigen::Vector3f surfaceInterpolatedNormal = interpolateNormals(vertexANormal, vertexBNormal, vertexCNormal, barycentricCoordinate);
 
-					Eigen::Vector3f surfaceNormalEigen = interpolateNormals(vertexANormal, vertexBNormal, vertexCNormal, barycentricCoordinate.toEigenThree);
-					vectorThree surfaceNormal = vectorThree::toVectorThree(surfaceNormalEigen);
-					surfaceNormal = surfaceNormal.normalize();
+					currentFace.normal = vectorThree::toVectorThree(surfaceInterpolatedNormal);
 
-					*/
 					currentDistance = (point - origin).length();
 					//Calculates closest triangle
 					if (minDistance > currentDistance && currentDistance > 0.0001) {
