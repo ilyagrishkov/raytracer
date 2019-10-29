@@ -20,15 +20,18 @@
 #include <algorithm>
 #include <cmath>
 
-static int rayTriangleChecks = 0;
-static int rayBoxChecks = 0;
-static int rayTriangleIntersections = 0;
-static int rayBoxIntersections = 0;
+static long long rayTriangleChecks = 0;
+static long long rayBoxChecks = 0;
+static long long rayTriangleIntersections = 0;
+static long long rayBoxIntersections = 0;
+
+static int load_progress = 0;
 
 
 static float RAYLENGTH = 10.0;
 static const int MAX_BOUNCES = 5;
 static const Eigen::Vector3f NO_HIT_COLOR = { 1.0, 1.0, 1.0 };
+static const int SOFT_SHADOW_PRECISION = 8;
 
 struct vectorFour {
 	float x;
