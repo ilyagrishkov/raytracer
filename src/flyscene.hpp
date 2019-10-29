@@ -11,6 +11,7 @@
 #include <tucano/shapes/camerarep.hpp>
 #include <tucano/shapes/cylinder.hpp>
 #include <tucano/shapes/sphere.hpp>
+#include <tucano/shapes/box.hpp>
 #include <tucano/utils/flycamera.hpp>
 #include <tucano/utils/imageIO.hpp>
 #include <tucano/utils/mtlIO.hpp>
@@ -32,6 +33,8 @@ static float RAYLENGTH = 10.0;
 static const int MAX_BOUNCES = 5;
 static const Eigen::Vector3f NO_HIT_COLOR = { 1.0, 1.0, 1.0 };
 static const int SOFT_SHADOW_PRECISION = 8;
+
+static std::vector<Tucano::Shapes::Box> leafBoxes;
 
 struct vectorFour {
 	float x;
@@ -250,6 +253,8 @@ public:
 	float getY() { return (yMax - yMin); }
 
 	float getZ() { return (zMax - zMin); }
+
+	Eigen::Vector3f getCenter() { return Eigen::Vector3f(xMin + getX()/2, yMin + getY()/2, zMin + getZ()/2); }
 };
 
 struct Triangle {

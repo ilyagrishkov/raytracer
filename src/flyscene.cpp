@@ -12,7 +12,14 @@ void printNodes(BoundingBox &currentBox) {
   //std::cout << currentBox.xMin << " " <<  currentBox.xMin << " " << currentBox.yMin << " " << currentBox.yMax << " " << currentBox.zMin << " " << currentBox.zMax << " FACES: " << currentBox.getFaces().size() << std::endl;
   
   if(currentBox.children.size() == 0) {
-    std::cout << "VOLUME: " << currentBox.getVolume() << " FACES: " << currentBox.faces.size() << std::endl;
+	  Tucano::Shapes::Box box = Tucano::Shapes::Box(currentBox.getX(), currentBox.getY(), currentBox.getZ());
+	  Eigen::Affine3f boxMatrix = box.getShapeModelMatrix();
+
+	  boxMatrix.translate(currentBox.getCenter());
+
+	  box.setModelMatrix(boxMatrix);
+
+	  leafBoxes.push_back(box);
   
   }
   for (BoundingBox &box : currentBox.children) {
@@ -297,6 +304,7 @@ std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh& mesh) {
   //printNodes(currentBox);
   boxes.push_back(currentBox);
   std::cout << "Creating bounding boxes... DONE" << std::endl;
+  //printNodes(currentBox);
   return boxes;
 }
 
@@ -403,8 +411,6 @@ void Flyscene::initialize(int width, int height) {
   mesh.normalizeModelMatrix();
   boxes = createBoundingBoxes(mesh);
 
-  boxes = createBoundingBoxes(mesh);
-
   // pass all the materials to the Phong Shader
   for (int i = 0; i < materials.size(); ++i)
     phong.addMaterial(materials[i]);
@@ -462,6 +468,10 @@ void Flyscene::paintGL(void) {
   // render the ray and camera representation for ray debug
   for (Tucano::Shapes::Cylinder ray : rays) {
 	ray.render(flycamera, scene_light);
+  }
+
+  for (Tucano::Shapes::Box box : leafBoxes) {
+	  box.render(flycamera, scene_light);
   }
   
   camerarep.render(flycamera, scene_light);
@@ -695,7 +705,9 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 		color = calculateColor(mat, light, flycamera, hitFace[0], hitPoint);
 		
 	}
-	color = reflectColor*0.4 + color + mat.getAmbient();
+	Eigen::Vector3f ks = mat.getSpecular();
+	Eigen::Vector3f reflectionC = Eigen::Vector3f(reflectColor.x() * ks.x(), reflectColor.y() * ks.y(), reflectColor.z() * ks.z());
+ 	color = reflectionC + color + mat.getAmbient();
 	return color * (float(brightness)/float(SOFT_SHADOW_PRECISION));
 }
 
