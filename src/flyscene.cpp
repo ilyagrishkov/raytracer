@@ -414,7 +414,7 @@ void Flyscene::initialize(int width, int height) {
 
   // load the OBJ file and materials
   Tucano::MeshImporter::loadObjFile(mesh, materials,
-									"resources/models/dodgeColorTest.obj");
+									"resources/models/cube.obj");
 
 
   // normalize the model (scale to unit cube and center at origin)
@@ -766,8 +766,9 @@ Triangle Flyscene::traceRay(vectorThree origin, vectorThree dest, std::vector<Bo
 
 					Eigen::Vector3f surfaceInterpolatedNormal = interpolateNormals(vertexANormal, vertexBNormal, vertexCNormal, barycentricCoordinate);
 
-					currentFace.normal = vectorThree::toVectorThree(surfaceInterpolatedNormal);
-
+					//currentFace.normal = vectorThree::toVectorThree(surfaceInterpolatedNormal);
+					//oppositeFace.normal = currentFace.normal;
+		//			currentFace.normal = currentFace.
 					currentDistance = (point - origin).length();
 					//Calculates closest triangle
 					if (minDistance > currentDistance && currentDistance > 0.0001) {
