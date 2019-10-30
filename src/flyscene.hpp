@@ -221,6 +221,9 @@ struct face {
 	vectorThree vertex1;
 	vectorThree vertex2;
 	vectorThree vertex3;
+	vectorThree vnormal1;
+	vectorThree vnormal2;
+	vectorThree vnormal3;
 	vectorThree normal;
 	int material_id;
 };
