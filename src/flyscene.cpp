@@ -848,7 +848,7 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 	if (hitFace.empty()) {
 		star++;
 		//int v1 = rand() % 100;
-		if (!((star%100 < 50 && star%100 > 48) || star%100>98)) {
+		if ((star%100 < 50 && star%4000 > 48) || star%40000>99) {
 			return NO_HIT_COLOR.cwiseProduct(noHitMultiplier);
 		}
 		else {
