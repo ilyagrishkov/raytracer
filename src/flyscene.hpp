@@ -226,10 +226,39 @@ struct face {
 	int material_id;
 };
 
+class Sphere {
+
+	float radius;
+	vectorThree center;
+	int material_id = -1;
+
+public:
+
+	Sphere(float r, vectorThree c, int mat) {
+		radius = r;
+		center = c;
+		material_id = mat;
+	}
+	float getRadius() { return radius; }
+	vectorThree getCenter() { return center; }
+	int getMaterialId() { return material_id; }
+	vectorThree getNormal(vectorThree& point) { return (point - center).normalize(); }
+	bool intersection(vectorThree& origin, vectorThree& dest, vectorThree& point);
+};
+
+struct Triangle {
+	vectorThree hitPoint;
+	std::vector<face> hitFace;
+
+	Triangle(vectorThree hitPoint, std::vector<face> hitFace) : hitPoint(hitPoint), hitFace(hitFace) {};
+
+};
+
 
 class BoundingBox {
 public:
 	std::vector<face> faces;
+	std::vector<Sphere> spheres;
 	std::vector<BoundingBox> children;
 	float xMax;
 	float xMin;
@@ -261,13 +290,7 @@ public:
 	Eigen::Vector3f getCenter() { return Eigen::Vector3f(xMin + getX()/2, yMin + getY()/2, zMin + getZ()/2); }
 };
 
-struct Triangle {
-	vectorThree hitPoint;
-	std::vector<face> hitFace;
 
-	Triangle(vectorThree hitPoint, std::vector<face> hitFace) : hitPoint(hitPoint), hitFace(hitFace) {};
-
-};
 
 class Flyscene {
 
