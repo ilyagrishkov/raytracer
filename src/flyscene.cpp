@@ -313,9 +313,128 @@ std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh& mesh) {
   BoundingBox currentBox = createBox(myMesh);
   splitBox(currentBox, SPLIT_FACTOR);
 
+  //vectorThree sphereCenter = {1.0, 1.0, 1.0};
+  //Sphere sphere(0.5, sphereCenter, 0);
+  //currentBox.spheres.push_back(sphere);
   //printNodes(currentBox);
   boxes.push_back(currentBox);
   std::cout << "Creating bounding boxes... DONE" << std::endl;
+  return boxes;
+}
+
+//===========================================================================
+//=============================== Sphere ====================================
+//===========================================================================
+
+bool Sphere::intersection(vectorThree& origin, vectorThree& dest, vectorThree& point) {
+
+  vectorThree dir = dest - origin;
+  vectorThree ce = origin - center;
+
+  float a = dir.dot(dir);
+  float b = 2 * ce.dot(dir);
+  float c = ce.dot(ce) - (radius * radius);
+
+  float discriminant = b*b - 4*a*c;
+
+  if(discriminant > 0) {
+
+    float desc = sqrt(discriminant);
+
+    float temp = (-b-desc)/(2*a);
+
+    point = origin + dir * temp;
+
+    return true;
+  }
+
+  return false;
+}
+
+//===========================================================================
+
+//===========================================================================
+//===================== Old acceleration structure ==========================
+//===========================================================================
+
+
+std::vector<face> getMesh(Tucano::Mesh mesh) {
+  std::vector<face> myMesh;
+
+
+  for (int i = 0; i < mesh.getNumberOfFaces(); i++) {
+
+    Tucano::Face oldFace = mesh.getFace(i);
+
+    Eigen::Vector3f vertex1 = (mesh.getVertex(oldFace.vertex_ids[0])).head<3>();
+    Eigen::Vector3f vertex2 = (mesh.getVertex(oldFace.vertex_ids[1])).head<3>();
+    Eigen::Vector3f vertex3 = (mesh.getVertex(oldFace.vertex_ids[2])).head<3>();
+
+    Eigen::Vector3f normal = oldFace.normal;
+
+    face currentFace{
+    {vertex1[0], vertex1[1], vertex1[2]},
+    {vertex2[0], vertex2[1], vertex2[2]},
+    {vertex3[0], vertex3[1], vertex3[2]},
+    {normal[0], normal[1], normal[2]},
+    oldFace.material_id };
+
+    myMesh.push_back(currentFace);
+
+  }
+  return myMesh;
+}
+
+std::vector<BoundingBox> getBoxes(std::vector<face> mesh) {
+  std::vector<BoundingBox> boxes;
+
+  BoundingBox currentBox;
+
+  int faceNum = 100;
+
+  for (int i = 0; i < mesh.size(); i++) {
+
+    face currentFace = mesh[i];
+
+    vectorThree vertex1 = currentFace.vertex1;
+    vectorThree vertex2 = currentFace.vertex2;
+    vectorThree vertex3 = currentFace.vertex3;
+
+    currentBox.xMax = std::max(currentBox.xMax, vertex1.x);
+    currentBox.xMax = std::max(currentBox.xMax, vertex2.x);
+    currentBox.xMax = std::max(currentBox.xMax, vertex3.x);
+
+    currentBox.xMin = std::min(currentBox.xMin, vertex1.x);
+    currentBox.xMin = std::min(currentBox.xMin, vertex2.x);
+    currentBox.xMin = std::min(currentBox.xMin, vertex3.x);
+
+    currentBox.yMax = std::max(currentBox.yMax, vertex1.y);
+    currentBox.yMax = std::max(currentBox.yMax, vertex2.y);
+    currentBox.yMax = std::max(currentBox.yMax, vertex3.y);
+
+    currentBox.yMin = std::min(currentBox.yMin, vertex1.y);
+    currentBox.yMin = std::min(currentBox.yMin, vertex2.y);
+    currentBox.yMin = std::min(currentBox.yMin, vertex3.y);
+
+    currentBox.zMax = std::max(currentBox.zMax, vertex1.z);
+    currentBox.zMax = std::max(currentBox.zMax, vertex2.z);
+    currentBox.zMax = std::max(currentBox.zMax, vertex3.z);
+
+    currentBox.zMin = std::min(currentBox.zMin, vertex1.z);
+    currentBox.zMin = std::min(currentBox.zMin, vertex2.z);
+    currentBox.zMin = std::min(currentBox.zMin, vertex3.z);
+
+    currentBox.faces.push_back(currentFace);
+
+    if (i % faceNum == faceNum - 1 || i == mesh.size() - 1) {
+
+      //std::cout << currentBox.faces.size() << "number of faces" << std::endl;
+
+      boxes.push_back(currentBox);
+      currentBox = BoundingBox();
+
+    }
+  }
   return boxes;
 }
 
@@ -442,7 +561,7 @@ void Flyscene::initialize(int width, int height) {
 
   // load the OBJ file and materials
   Tucano::MeshImporter::loadObjFile(mesh, materials,
-									"resources/models/pillars.obj");
+									"resources/models/dodgeColorTest.obj");
 
 
   // normalize the model (scale to unit cube and center at origin)
@@ -654,7 +773,7 @@ void Flyscene::traceDebugRay(vectorThree& origin, vectorThree& dest, std::vector
 		reflectColor = NO_HIT_COLOR.cwiseProduct(noHitMultiplier);
 	}
 	else {
-		dest = calcReflection(tracedRay.hitPoint, origin, tracedRay.hitFace);
+		//dest = calcReflection(tracedRay.hitPoint, origin, tracedRay.hitFace);
 		reflectColor = traceRay(tracedRay.hitPoint, dest, boxes, bounces + 1);
 		rayLength = (tracedRay.hitPoint - origin).length();
 	}
@@ -903,6 +1022,29 @@ Triangle Flyscene::traceRay(vectorThree origin, vectorThree dest, std::vector<Bo
 					}
 				}
 			}
+    }
+      std::vector<Sphere> local_spheres = currentBox.spheres;
+      for (Sphere& sphere : local_spheres) {
+        //std::cout << "Sphere Check!" << local_spheres.size() << std::endl;
+        face new_face;
+
+        if(sphere.intersection(origin2, dest2, point)) {
+
+
+          //std::cout << "Sphere Intersection!" << point.x << ", " << point.y << ", " << point.z << std::endl;
+
+          currentDistance = (point - origin).length();
+          if (minDistance > currentDistance && currentDistance > 0.0001) {
+
+              minFace.resize(1);
+              minDistance = currentDistance;
+              new_face.normal = sphere.getNormal(point);
+              new_face.material_id = sphere.getMaterialId();
+              minFace[0] = new_face;
+              hitPoint = point;
+          }
+        
+      }
 		}
 	}
 	//In case ray hits nothing

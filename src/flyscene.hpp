@@ -31,10 +31,10 @@ static int debug_rays = 0;
 
 static float RAYLENGTH = 10.0;
 static const int MAX_DEPTH = 5;
-static const int MAX_BOUNCES = 5;
+static const int MAX_BOUNCES = 1;
 static const Eigen::Vector3f NO_HIT_COLOR = { 1.0, 1.0, 1.0 };
 
-static const int SOFT_SHADOW_PRECISION = 8;
+static const int SOFT_SHADOW_PRECISION = 360;
 static const int SPLIT_FACTOR = 10;
 
 static std::vector<Tucano::Shapes::Box> leafBoxes;
@@ -225,10 +225,39 @@ struct face {
 	int material_id;
 };
 
+class Sphere {
+
+	float radius;
+	vectorThree center;
+	int material_id = -1;
+
+public:
+
+	Sphere(float r, vectorThree c, int mat) {
+		radius = r;
+		center = c;
+		material_id = mat;
+	}
+	float getRadius() { return radius; }
+	vectorThree getCenter() { return center; }
+	int getMaterialId() { return material_id; }
+	vectorThree getNormal(vectorThree& point) { return (point - center).normalize(); }
+	bool intersection(vectorThree& origin, vectorThree& dest, vectorThree& point);
+};
+
+struct Triangle {
+	vectorThree hitPoint;
+	std::vector<face> hitFace;
+
+	Triangle(vectorThree hitPoint, std::vector<face> hitFace) : hitPoint(hitPoint), hitFace(hitFace) {};
+
+};
+
 
 class BoundingBox {
 public:
 	std::vector<face> faces;
+	std::vector<Sphere> spheres;
 	std::vector<BoundingBox> children;
 	float xMax;
 	float xMin;
@@ -260,13 +289,7 @@ public:
 	Eigen::Vector3f getCenter() { return Eigen::Vector3f(xMin + getX()/2, yMin + getY()/2, zMin + getZ()/2); }
 };
 
-struct Triangle {
-	vectorThree hitPoint;
-	std::vector<face> hitFace;
 
-	Triangle(vectorThree hitPoint, std::vector<face> hitFace) : hitPoint(hitPoint), hitFace(hitFace) {};
-
-};
 
 class Flyscene {
 
