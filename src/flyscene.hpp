@@ -27,7 +27,7 @@ static long long rayTriangleIntersections = 0;
 static long long rayBoxIntersections = 0;
 
 static int load_progress = 0;
-
+static int debug_rays = 0;
 
 static float RAYLENGTH = 10.0;
 static const int MAX_DEPTH = 5;
@@ -327,6 +327,7 @@ public:
 
   void shiftBgroundblack();
 
+  void printInformationDebug(int ray);
   /**
    * @brief trace a single ray from the camera passing through dest
    * @param origin Ray origin
@@ -368,6 +369,8 @@ private:
 
   /// A very thin cylinder to draw a debug ray
   std::vector<Tucano::Shapes::Cylinder> rays;
+
+  std::vector<std::vector<vectorThree>> rayInformation;
 
   // Scene meshes
   Tucano::Mesh mesh;
