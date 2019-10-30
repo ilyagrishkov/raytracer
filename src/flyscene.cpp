@@ -71,7 +71,7 @@ BoundingBox createBox(const std::vector<face>& mesh) {
   return currentBox;
 }
 
-Eigen::Vector3f noHitMultiplier = { 0, 0, 0 };
+Eigen::Vector3f noHitMultiplier = { 1, 1, 1 };
 
 bool sorterX(face i, face j) {
   return i.vertex1.x < j.vertex1.x;
@@ -614,24 +614,27 @@ void Flyscene::changeObject(void)
 void Flyscene::shiftBgroundred(void)
 {
 	noHitMultiplier = Eigen::Vector3f{ 1, 0, 0 };
-	glClearColor(0.9, 0.0, 0.0, 0.0);
+	glClearColor(0.9, 0.0, 0.0, 0.9);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	std::cout << "Current Color: Red" << endl;
 }
 
 
 void Flyscene::shiftBgroundblue(void)
 {
 	noHitMultiplier = Eigen::Vector3f{ 0, 0, 1 };
-	glClearColor(0.0, 0.0, 0.9, 0.0);
+	glClearColor(0.0, 0.0, 0.9, 0.9);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	std::cout << "Current Color: Blue" << endl;
 }
 
 
 void Flyscene::shiftBgroundgreen(void)
 {
 	noHitMultiplier = Eigen::Vector3f{ 0, 1, 0 };
-	glClearColor(0.0, 0.9, 0.0, 0.0);
+	glClearColor(0.0, 0.9, 0.0, 0.9);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	std::cout << "Current Color: Green" << endl;
 }
 
 
@@ -640,6 +643,7 @@ void Flyscene::shiftBgroundwhite(void)
 	noHitMultiplier = Eigen::Vector3f{ 1, 1, 1 };
 	glClearColor(0.9, 0.9, 0.9, 0.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	std::cout << "Current Color: White" << endl;
 }
 
 
@@ -647,8 +651,9 @@ void Flyscene::shiftBgroundblack(void)
 {
 	noHitMultiplier = Eigen::Vector3f{ 0, 0, 0 };
 
-	glClearColor(0.0, 0.0, 0.0, 0.0);
+	glClearColor(0.0, 0.0, 0.0, 0.9);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	std::cout << "Current Color: Black" << endl;
 }
 
 void Flyscene::printInformationDebug(int ray) {
@@ -749,53 +754,62 @@ void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
 	camerarep.setModelMatrix(flycamera.getViewMatrix().inverse());
 }
 
-void Flyscene::traceDebugRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes, int bounces) {
-	
+void Flyscene::traceDebugRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes, int bounces) {	
 	if (bounces >= MAX_BOUNCES) {
 		return;
 	}
+
+	//Make new debugray and calculate direction
+	Tucano::Shapes::Cylinder debugRay = Tucano::Shapes::Cylinder(0.1, 0.0);
+	Eigen::Vector3f reflectColor = { 0.0, 0.0, 0.0 };
+	vectorThree dir = (dest - origin).normalize();
+	debugRay.resetModelMatrix();
+
+	//Trace where new ray hits a point and set origin and direction
+	Triangle tracedRay = traceRay(origin, dest, boxes);
+	debugRay.setOriginOrientation(origin.toEigenThree(), dir.toEigenThree());
+
+	//Store origin and destination
 	std::vector<vectorThree> next;
 	rayInformation.push_back(next);
 	rayInformation[bounces].push_back(origin);
-	rayInformation[bounces].push_back((origin - dest).normalize());
+	rayInformation[bounces].push_back(dir);
 
-	Tucano::Shapes::Cylinder debugRay = Tucano::Shapes::Cylinder(0.1, 0.0);
-	debugRay.resetModelMatrix();
-	Triangle tracedRay = traceRay(origin, dest, boxes);
-	Eigen::Vector3f reflectColor = { 0.0, 0.0, 0.0};
-	vectorThree dir = vectorThree::toVectorThree(((dest - origin).toEigenThree()).normalized());
-	
-	debugRay.setOriginOrientation(origin.toEigenThree(), dir.toEigenThree());
-
+	//Determine length and color depending on if it hit something
 	float rayLength;
 	if (tracedRay.hitFace.empty()) {
 		rayLength = RAYLENGTH;
 		reflectColor = NO_HIT_COLOR.cwiseProduct(noHitMultiplier);
 	}
 	else {
-		//dest = calcReflection(tracedRay.hitPoint, origin, tracedRay.hitFace);
-		reflectColor = traceRay(tracedRay.hitPoint, dest, boxes, bounces + 1);
+		reflectColor = traceRay(origin, dest, boxes, bounces);
 		rayLength = (tracedRay.hitPoint - origin).length();
 	}
 	
-	debugRay.setSize(0.01, rayLength);
+	//Set size and color of ray
 	Eigen::Vector4f colorRay = { reflectColor[0], reflectColor[1], reflectColor[2], 0.0 };
+	debugRay.setSize(0.01, rayLength);
 	debugRay.setColor(colorRay);
-
+	
+	//Store color and length
 	rayInformation[bounces].push_back(vectorThree::toVectorThree(reflectColor));
 	rayInformation[bounces].push_back({ rayLength, 0.0, 0.0 });
 
+	//Render new ray
 	rays.push_back(debugRay);
 	
-	
+	//If it doesn't hit anything, set information and return
 	if (tracedRay.hitFace.empty()) {
 		rayInformation[bounces].push_back({ -1.0, -1.0, -1.0 });
 		debug_rays = bounces;
 		return;
 	}
+
+	//If it did, store hitpoint and calculate new direction
 	rayInformation[bounces].push_back(tracedRay.hitPoint);
 	vectorThree reflect = calcReflection(tracedRay.hitPoint, origin, tracedRay.hitFace);
 
+	//Make next debugray
 	traceDebugRay(tracedRay.hitPoint, reflect, boxes, bounces + 1);
 }
 
@@ -951,7 +965,14 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 
 	//If nothing was hit, return NO_HIT_COLOR
 	if (hitFace.empty()) {
-		return NO_HIT_COLOR.cwiseProduct(noHitMultiplier);
+		star++;
+		//int v1 = rand() % 100;
+		if ((star%100 < 50 && star%4000 > 48) || star%40000>99) {
+			return NO_HIT_COLOR.cwiseProduct(noHitMultiplier);
+		}
+		else {
+			return { 1.0, 1.0, 1.0 };
+		}
 	}
 	
 	if (bounces < MAX_BOUNCES) {

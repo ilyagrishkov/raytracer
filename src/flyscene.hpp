@@ -25,6 +25,7 @@ static long long rayTriangleChecks = 0;
 static long long rayBoxChecks = 0;
 static long long rayTriangleIntersections = 0;
 static long long rayBoxIntersections = 0;
+static long long star = 0;
 
 static int load_progress = 0;
 static int debug_rays = 0;
