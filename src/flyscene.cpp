@@ -442,7 +442,7 @@ void Flyscene::initialize(int width, int height) {
 
   // load the OBJ file and materials
   Tucano::MeshImporter::loadObjFile(mesh, materials,
-									"resources/models/pillars.obj");
+									"resources/models/colorSceneV2.obj");
 
 
   // normalize the model (scale to unit cube and center at origin)
@@ -456,11 +456,11 @@ void Flyscene::initialize(int width, int height) {
 
   // set the color and size of the sphere to represent the light sources
   // same sphere is used for all sources
-  lightrep.setColor(Eigen::Vector4f(1.0, 1.0, 0.0, 1.0));
+  lightrep.setColor(Eigen::Vector4f(0.0, 0.0, 0.0, 1.0));
   lightrep.setSize(0.15);
 
   // create a first ray-tracing light source at some random position
-  lights.push_back(Eigen::Vector3f(-1.0, 1.0, 1.0));
+  lights.push_back(Eigen::Vector3f(-1.0, -10.0, 1.0));
 
   // scale the camera representation (frustum) for the ray debug
   camerarep.shapeMatrix()->scale(0.2);
