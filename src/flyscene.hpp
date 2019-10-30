@@ -32,10 +32,10 @@ static int debug_rays = 0;
 
 static float RAYLENGTH = 10.0;
 static const int MAX_DEPTH = 5;
-static const int MAX_BOUNCES = 1;
+static const int MAX_BOUNCES = 5;
 static const Eigen::Vector3f NO_HIT_COLOR = { 1.0, 1.0, 1.0 };
 
-static const int SOFT_SHADOW_PRECISION = 360;
+static const int SOFT_SHADOW_PRECISION = 8;
 static const int SPLIT_FACTOR = 10;
 
 static std::vector<Tucano::Shapes::Box> leafBoxes;
