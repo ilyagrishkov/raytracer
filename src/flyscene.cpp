@@ -532,6 +532,28 @@ void Flyscene::shiftBgroundblack(void)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
+void Flyscene::printInformationDebug(int ray) {
+	std::cout << std::endl;
+	std::cout << "================================ RAY INFORMATION ================================" << std::endl;
+	std::cout << "Information about ray: " << ray + 1 << std::endl;
+	if (ray > debug_rays) {
+		std::cout << "This ray doesn't exist" << std::endl;
+		return;
+	}
+
+	std::cout << "Origin:	 " << rayInformation[ray][0].x << " " << rayInformation[ray][0].y << " " << rayInformation[ray][0].z << std::endl;
+	std::cout << "Direction: " << rayInformation[ray][1].x << " " << rayInformation[ray][1].y << " " << rayInformation[ray][1].z << std::endl;
+	std::cout << "Color:	 " << rayInformation[ray][2].x << " " << rayInformation[ray][2].y << " " << rayInformation[ray][2].z << " 0.0" << std::endl;
+	std::cout << "Length:	 " << rayInformation[ray][3].x << std::endl;
+	if (rayInformation[ray][4].x == -1.0) {
+		std::cout << "Hit at:	 None " << std::endl;
+	}
+	else {
+		std::cout << "Hit at:	 " << rayInformation[ray][4].x << " " << rayInformation[ray][4].y << " " << rayInformation[ray][4].z << std::endl;
+	}
+	std::cout << std::endl;
+}
+
 
 void Flyscene::paintGL(void) {
 
@@ -595,6 +617,7 @@ void Flyscene::simulate(GLFWwindow *window) {
 void Flyscene::createDebugRay(const Eigen::Vector2f& mouse_pos) {
 	// from pixel position to world coordinates
 	rays.clear();
+	rayInformation.clear();
 
 	Eigen::Vector3f screen_pos = flycamera.screenToWorld(mouse_pos);
 
@@ -612,7 +635,11 @@ void Flyscene::traceDebugRay(vectorThree& origin, vectorThree& dest, std::vector
 	if (bounces >= MAX_BOUNCES) {
 		return;
 	}
-	
+	std::vector<vectorThree> next;
+	rayInformation.push_back(next);
+	rayInformation[bounces].push_back(origin);
+	rayInformation[bounces].push_back((origin - dest).normalize());
+
 	Tucano::Shapes::Cylinder debugRay = Tucano::Shapes::Cylinder(0.1, 0.0);
 	debugRay.resetModelMatrix();
 	Triangle tracedRay = traceRay(origin, dest, boxes);
@@ -624,7 +651,7 @@ void Flyscene::traceDebugRay(vectorThree& origin, vectorThree& dest, std::vector
 	float rayLength;
 	if (tracedRay.hitFace.empty()) {
 		rayLength = RAYLENGTH;
-		reflectColor = NO_HIT_COLOR;
+		reflectColor = NO_HIT_COLOR.cwiseProduct(noHitMultiplier);
 	}
 	else {
 		dest = calcReflection(tracedRay.hitPoint, origin, tracedRay.hitFace);
@@ -632,15 +659,22 @@ void Flyscene::traceDebugRay(vectorThree& origin, vectorThree& dest, std::vector
 		rayLength = (tracedRay.hitPoint - origin).length();
 	}
 	
-	debugRay.setSize(0.005, rayLength);
-	Eigen::Vector4f thisColor = { reflectColor[0], reflectColor[1], reflectColor[2], 0.0 };
-	debugRay.setColor(thisColor);
-	
+	debugRay.setSize(0.01, rayLength);
+	Eigen::Vector4f colorRay = { reflectColor[0], reflectColor[1], reflectColor[2], 0.0 };
+	debugRay.setColor(colorRay);
+
+	rayInformation[bounces].push_back(vectorThree::toVectorThree(reflectColor));
+	rayInformation[bounces].push_back({ rayLength, 0.0, 0.0 });
+
 	rays.push_back(debugRay);
 	
+	
 	if (tracedRay.hitFace.empty()) {
+		rayInformation[bounces].push_back({ -1.0, -1.0, -1.0 });
+		debug_rays = bounces;
 		return;
 	}
+	rayInformation[bounces].push_back(tracedRay.hitPoint);
 	vectorThree reflect = calcReflection(tracedRay.hitPoint, origin, tracedRay.hitFace);
 
 	traceDebugRay(tracedRay.hitPoint, reflect, boxes, bounces + 1);
@@ -679,8 +713,9 @@ void Flyscene::raytraceScene(int width, int height) {
   vectorThree myOrigin = vectorThree::toVectorThree(origin);
 
  //for every pixel shoot a ray from the origin through the pixel coords
-
-#pragma omp parallel for schedule(dynamic, 1) num_threads(10)
+#define N 10
+#pragma omp parallel 
+#pragma omp for
 
   // DO NOT PUT ANYTHING BETWEEN THESE TWO LINES. PLEASE.
 
@@ -802,8 +837,6 @@ Eigen::Vector3f Flyscene::traceRay(vectorThree &origin, vectorThree &dest, std::
 	if (bounces < MAX_BOUNCES) {
 		dest = calcReflection(hitPoint, origin, hitFace);
 		reflectColor = traceRay(hitPoint, dest, boxes, bounces + 1);
-
-		//Do something with this reflection
 	}
 	return calColor(hitFace, hitPoint, boxes, reflectColor);
 }
