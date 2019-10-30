@@ -311,7 +311,7 @@ std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh& mesh) {
   std::vector<BoundingBox> boxes;
 
   BoundingBox currentBox = createBox(myMesh);
-  splitBox(currentBox, 10);
+  splitBox(currentBox, SPLIT_FACTOR);
 
   //printNodes(currentBox);
   boxes.push_back(currentBox);
@@ -748,6 +748,7 @@ void Flyscene::raytraceScene(int width, int height) {
   std::cout << "Resolution: " << image_size[0] << "x" << image_size[1] << std::endl;
   std::cout << "Number of ray reflections: " << MAX_BOUNCES << std::endl;
   std::cout << "Soft shadow precision: " << SOFT_SHADOW_PRECISION << std::endl;
+  std::cout << "Faces per bounding box: " << SPLIT_FACTOR << std::endl;
   std::cout << "----------------------------------" << std::endl;
   std::cout << "Ray-triangle checks: " << rayTriangleChecks << std::endl;
   std::cout << "Ray-triangle intersections: " << rayTriangleIntersections << std::endl;
