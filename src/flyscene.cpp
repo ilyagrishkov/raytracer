@@ -71,7 +71,7 @@ BoundingBox createBox(const std::vector<face>& mesh) {
   return currentBox;
 }
 
-Eigen::Vector3f noHitMultiplier = { 0, 0, 0 };
+Eigen::Vector3f noHitMultiplier = { 1, 1, 1 };
 
 bool sorterX(face i, face j) {
   return i.vertex1.x < j.vertex1.x;
@@ -495,24 +495,27 @@ void Flyscene::changeObject(void)
 void Flyscene::shiftBgroundred(void)
 {
 	noHitMultiplier = Eigen::Vector3f{ 1, 0, 0 };
-	glClearColor(0.9, 0.0, 0.0, 0.0);
+	glClearColor(0.9, 0.0, 0.0, 0.9);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	std::cout << "Current Color: Red" << endl;
 }
 
 
 void Flyscene::shiftBgroundblue(void)
 {
 	noHitMultiplier = Eigen::Vector3f{ 0, 0, 1 };
-	glClearColor(0.0, 0.0, 0.9, 0.0);
+	glClearColor(0.0, 0.0, 0.9, 0.9);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	std::cout << "Current Color: Blue" << endl;
 }
 
 
 void Flyscene::shiftBgroundgreen(void)
 {
 	noHitMultiplier = Eigen::Vector3f{ 0, 1, 0 };
-	glClearColor(0.0, 0.9, 0.0, 0.0);
+	glClearColor(0.0, 0.9, 0.0, 0.9);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	std::cout << "Current Color: Green" << endl;
 }
 
 
@@ -521,6 +524,7 @@ void Flyscene::shiftBgroundwhite(void)
 	noHitMultiplier = Eigen::Vector3f{ 1, 1, 1 };
 	glClearColor(0.9, 0.9, 0.9, 0.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	std::cout << "Current Color: White" << endl;
 }
 
 
@@ -528,8 +532,9 @@ void Flyscene::shiftBgroundblack(void)
 {
 	noHitMultiplier = Eigen::Vector3f{ 0, 0, 0 };
 
-	glClearColor(0.0, 0.0, 0.0, 0.0);
+	glClearColor(0.0, 0.0, 0.0, 0.9);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	std::cout << "Current Color: Black" << endl;
 }
 
 void Flyscene::printInformationDebug(int ray) {
