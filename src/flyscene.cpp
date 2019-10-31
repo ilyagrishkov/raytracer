@@ -331,9 +331,39 @@ std::vector<BoundingBox> createBoundingBoxes(Tucano::Mesh& mesh) {
 //========================== Helper Functions ===============================
 //===========================================================================
 
+vectorThree Flyscene::barycentric(const vectorThree& hitPoint, const vectorThree& pointA, const vectorThree& pointB, const vectorThree& pointC) {
+	vectorThree u = { pointB.x - pointA.x, pointB.y - pointA.y, pointB.z - pointA.z };
+	vectorThree v = { pointC.x - pointA.x, pointC.y - pointA.y, pointC.z - pointA.z };
+	vectorThree w = { hitPoint.x - pointA.x, hitPoint.y - pointA.y, hitPoint.z - pointA.z };
+
+
+	float d00 = u.dot(u);
+	float d01 = u.dot(v);
+	float d11 = v.dot(v);
+	float denom = d00 * d11 - d01 * d01;
+	float d20 = w.dot(u);
+	float d21 = w.dot(v);
+
+	float x = (d01 * d21 - d11 * d20) / denom;
+	float y = (d01 * d20 - d00 * d21) / denom;
+	float z = 1.0f - x - y;
+	Eigen::Vector3f h = { x, y, z };
+	vectorThree toret = vectorThree::toVectorThree(h);
+	return toret;
+}
+
+Eigen::Vector3f Flyscene::interpolateNormals(Eigen::Vector3f& vertexANormal, Eigen::Vector3f& vertexBNormal, Eigen::Vector3f& vertexCNormal, vectorThree& barycentricCoordinat) {
+	Eigen::Vector3f barycentricCoordinate = barycentricCoordinat.toEigenThree();
+	Eigen::Vector3f surfaceNormal = Eigen::Vector3f(
+		barycentricCoordinate.z() * vertexANormal.x() + barycentricCoordinate.x() * vertexBNormal.x() + barycentricCoordinate.y() * vertexCNormal.x(),
+		barycentricCoordinate.z() * vertexANormal.y() + barycentricCoordinate.x() * vertexBNormal.y() + barycentricCoordinate.y() * vertexCNormal.y(),
+		barycentricCoordinate.z() * vertexANormal.z() + barycentricCoordinate.x() * vertexBNormal.z() + barycentricCoordinate.y() * vertexCNormal.z()
+	);
+	return surfaceNormal.normalized();
+}
 
 Eigen::Vector3f calculateColor(const Tucano::Material::Mtl& mat, const Eigen::Vector3f& lights, 
-  const Tucano::Flycamera& flycamera, const face& currentFace, const vectorThree& point) {
+  const Tucano::Flycamera& flycamera, face& currentFace, const vectorThree& point) {
 
   /*
 
@@ -364,9 +394,22 @@ Eigen::Vector3f calculateColor(const Tucano::Material::Mtl& mat, const Eigen::Ve
 	float shininess = mat.getShininess();
 	Eigen::Vector3f ks = mat.getSpecular();
 	Eigen::Vector3f kd = mat.getDiffuse();
-  
 
-  vectorThree normal = currentFace.normal;
+	vectorThree barycentricCoordinate = Flyscene::barycentric(point, currentFace.vertex1, currentFace.vertex2, currentFace.vertex3);
+	face cur = currentFace;
+	Eigen::Vector3f vertexANormal = cur.vnormal1.toEigenThree().normalized();
+
+	Eigen::Vector3f vertexBNormal = cur.vnormal2.toEigenThree().normalized();
+
+	Eigen::Vector3f vertexCNormal = cur.vnormal3.toEigenThree().normalized();
+
+	Eigen::Vector3f surfaceInterpolatedNormal = Flyscene::interpolateNormals(vertexANormal, vertexBNormal, vertexCNormal, barycentricCoordinate);
+	surfaceInterpolatedNormal = surfaceInterpolatedNormal.normalized();
+
+	//currentFace.normal = vectorThree::toVectorThree(surfaceInterpolatedNormal);
+
+
+	vectorThree normal = vectorThree::toVectorThree(surfaceInterpolatedNormal);
   normal = normal.normalize();
 
   vectorThree light_pos = vectorThree::toVectorThree(lights);
@@ -418,36 +461,6 @@ void printProgressBar(int prog, int size) {
 }
 
 
-vectorThree barycentric(const vectorThree& hitPoint, const vectorThree& pointA, const vectorThree& pointB, const vectorThree& pointC) {
-	vectorThree u = { pointB.x - pointA.x, pointB.y - pointA.y, pointB.z - pointA.z };
-	vectorThree v = { pointC.x - pointA.x, pointC.y - pointA.y, pointC.z - pointA.z };
-	vectorThree w = { hitPoint.x - pointA.x, hitPoint.y - pointA.y, hitPoint.z - pointA.z };
-
-
-	float d00 = u.dot(u);
-	float d01 = u.dot(v);
-	float d11 = v.dot(v);
-	float denom = d00 * d11 - d01 * d01;
-	float d20 = w.dot(u);
-	float d21 = w.dot(v);
-
-	float x = (d01 * d21 - d11 * d20) / denom;
-	float y = (d01 * d20 - d00 * d21) / denom;
-	float z = 1.0f - x - y;
-	Eigen::Vector3f h = { x, y, z };
-	vectorThree toret = vectorThree::toVectorThree(h);
-	return toret;
-}
-
-Eigen::Vector3f interpolateNormals(Eigen::Vector3f& vertexANormal, Eigen::Vector3f& vertexBNormal, Eigen::Vector3f& vertexCNormal, vectorThree& barycentricCoordinat) {
-	Eigen::Vector3f barycentricCoordinate = barycentricCoordinat.toEigenThree();
-	Eigen::Vector3f surfaceNormal = Eigen::Vector3f(0.0, 0.0, 0.0);
-	surfaceNormal.x() = barycentricCoordinate.z() * vertexANormal.x() + barycentricCoordinate.x() * vertexBNormal.x() + barycentricCoordinate.y() * vertexCNormal.x();
-	surfaceNormal.y() = barycentricCoordinate.z() * vertexANormal.y() + barycentricCoordinate.x() * vertexBNormal.y() + barycentricCoordinate.y() * vertexCNormal.y();
-	surfaceNormal.z() = barycentricCoordinate.z() * vertexANormal.z() + barycentricCoordinate.x() * vertexBNormal.z() + barycentricCoordinate.y() * vertexCNormal.z();
-	return surfaceNormal.normalized();
-}
-
 
 //===========================================================================
 
@@ -462,7 +475,7 @@ void Flyscene::initialize(int width, int height) {
 
   // load the OBJ file and materials
   Tucano::MeshImporter::loadObjFile(mesh, materials,
-									"resources/models/pillars.obj");
+									"resources/models/glassOrbs.obj");
 
 
   // normalize the model (scale to unit cube and center at origin)
@@ -922,18 +935,18 @@ Triangle Flyscene::traceRay(vectorThree origin, vectorThree dest, std::vector<Bo
 						minFace.resize(1);
 						minDistance = currentDistance;
 						
-						vectorThree barycentricCoordinate = barycentric(point, currentFace.vertex1, currentFace.vertex2, currentFace.vertex3);
+						//vectorThree barycentricCoordinate = barycentric(point, currentFace.vertex1, currentFace.vertex2, currentFace.vertex3);
 
-						Eigen::Vector3f vertexANormal = currentFace.vnormal1.toEigenThree().normalized();
+						//Eigen::Vector3f vertexANormal = currentFace.vnormal1.toEigenThree().normalized();
 
-						Eigen::Vector3f vertexBNormal = currentFace.vnormal2.toEigenThree().normalized();
+						//Eigen::Vector3f vertexBNormal = currentFace.vnormal2.toEigenThree().normalized();
 
-						Eigen::Vector3f vertexCNormal = currentFace.vnormal3.toEigenThree().normalized();
+						//Eigen::Vector3f vertexCNormal = currentFace.vnormal3.toEigenThree().normalized();
 
-						Eigen::Vector3f surfaceInterpolatedNormal = interpolateNormals(vertexANormal, vertexBNormal, vertexCNormal, barycentricCoordinate);
-						surfaceInterpolatedNormal = surfaceInterpolatedNormal.normalized();
+						//Eigen::Vector3f surfaceInterpolatedNormal = interpolateNormals(vertexANormal, vertexBNormal, vertexCNormal, barycentricCoordinate);
+						//surfaceInterpolatedNormal = surfaceInterpolatedNormal.normalized();
 
-						currentFace.normal = vectorThree::toVectorThree(surfaceInterpolatedNormal);
+						//currentFace.normal = vectorThree::toVectorThree(surfaceInterpolatedNormal);
 
 						minFace[0] = currentFace;
 						hitPoint = point;
@@ -946,18 +959,18 @@ Triangle Flyscene::traceRay(vectorThree origin, vectorThree dest, std::vector<Bo
 							minFace.resize(1);
 							minDistance = currentDistance;
 
-							vectorThree barycentricCoordinate = barycentric(point, oppositeFace.vertex1, oppositeFace.vertex2, oppositeFace.vertex3);
+							//vectorThree barycentricCoordinate = barycentric(point, oppositeFace.vertex1, oppositeFace.vertex2, oppositeFace.vertex3);
 
-							Eigen::Vector3f vertexANormal = oppositeFace.vnormal1.toEigenThree().normalized();
+							//Eigen::Vector3f vertexANormal = oppositeFace.vnormal1.toEigenThree().normalized();
 
-							Eigen::Vector3f vertexBNormal = oppositeFace.vnormal2.toEigenThree().normalized();
+							//Eigen::Vector3f vertexBNormal = oppositeFace.vnormal2.toEigenThree().normalized();
 
-							Eigen::Vector3f vertexCNormal = oppositeFace.vnormal3.toEigenThree().normalized();
+							//Eigen::Vector3f vertexCNormal = oppositeFace.vnormal3.toEigenThree().normalized();
 
-							Eigen::Vector3f surfaceInterpolatedNormal = interpolateNormals(vertexANormal, vertexBNormal, vertexCNormal, barycentricCoordinate);
-							surfaceInterpolatedNormal = surfaceInterpolatedNormal.normalized();
+							//Eigen::Vector3f surfaceInterpolatedNormal = interpolateNormals(vertexANormal, vertexBNormal, vertexCNormal, barycentricCoordinate);
+							//surfaceInterpolatedNormal = surfaceInterpolatedNormal.normalized();
 
-							oppositeFace.normal = vectorThree::toVectorThree(surfaceInterpolatedNormal);
+							//oppositeFace.normal = vectorThree::toVectorThree(surfaceInterpolatedNormal);
 
 							minFace[0] = oppositeFace;
 							hitPoint = point;

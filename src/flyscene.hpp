@@ -343,6 +343,10 @@ public:
   void traceDebugRay(vectorThree& origin, vectorThree& dest, std::vector<BoundingBox>& boxes, int bounces);
 
   Triangle traceRay(vectorThree origin, vectorThree dest, std::vector<BoundingBox>& boxes);
+  static vectorThree barycentric(const vectorThree& hitPoint, const vectorThree& pointA, const vectorThree& pointB, const vectorThree& pointC);
+  static Eigen::Vector3f interpolateNormals(Eigen::Vector3f& vertexANormal, Eigen::Vector3f& vertexBNormal, Eigen::Vector3f& vertexCNormal, vectorThree& barycentricCoordinat);
+
+
   Eigen::Vector3f calColor(std::vector<face> hitFace, vectorThree hitPoint, std::vector<BoundingBox>& boxes, Eigen::Vector3f reflectColor);
 
   vectorThree calcReflection(vectorThree hitPoint, vectorThree origin, std::vector<face> hitFace);
