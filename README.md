@@ -7,8 +7,8 @@ Raytracer  that  generates  static  images  from  a  virtual  scene containing l
 
 ## Features:
 ### Perform ray intersections with planes, triangles, and bounding boxes 
-<img src="https://user-images.githubusercontent.com/45048351/76903259-04085d80-689e-11ea-923b-2315e04deb0c.png" align="center" />
-<img src="https://user-images.githubusercontent.com/45048351/76903203-e4713500-689d-11ea-8f86-677c6ecbb5f5.png" align="center" />
+![figure1_1]("https://user-images.githubusercontent.com/45048351/76903259-04085d80-689e-11ea-923b-2315e04deb0c.png" align="center")
+![figure1_2]("https://user-images.githubusercontent.com/45048351/76903203-e4713500-689d-11ea-8f86-677c6ecbb5f5.png" align="center")
 <br/>Figure 1: Shows the debug ray intersect with the objects in the scene. <hr>
 ### Computate shading at the first impact point (diffuse and specular). 
 Figure 2: Shows diffuse lighting, like on the cube and specular on the car. <hr>
