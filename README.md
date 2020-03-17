@@ -1,10 +1,10 @@
 # <div align="center"> RAY TRACING WITH OPENGL IN C++ </div>
-Raytracer  that  generates  static  images  from  a  virtual  scene containing lights, objects and a camera.
+<div align="center">Raytracer  that  generates  static  images  from  a  virtual  scene containing lights, objects and a camera.</div>
 <br/>
 
 ## <div align="center"> SAMPLE IMAGES </div>
-<img src="https://user-images.githubusercontent.com/45048351/76903735-d7087a80-689e-11ea-9df6-9298d7882343.png" width="500" height="500" align=center/>
-<img src="https://user-images.githubusercontent.com/45048351/76903766-e38cd300-689e-11ea-9f88-32c59e8dd5c2.jpeg" width="500" height="500" align=center/>
+<div align="center"><img src="https://user-images.githubusercontent.com/45048351/76903735-d7087a80-689e-11ea-9df6-9298d7882343.png" width="750" height="750"/></div>
+<div align="center"><img src="https://user-images.githubusercontent.com/45048351/76903766-e38cd300-689e-11ea-9f88-32c59e8dd5c2.jpeg" width="750" height="750" align=center/></div>
 <br/>
 
 ## <div align="center"> FEATURES </div>
