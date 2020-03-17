@@ -1,11 +1,13 @@
-# Ray Tracing with OpenGL in C++
-
+# <div align="center"> RAY TRACING WITH OPENGL IN C++ </div>
 Raytracer  that  generates  static  images  from  a  virtual  scene containing lights, objects and a camera.
-## Sample images
-<img src="https://user-images.githubusercontent.com/45048351/76903735-d7087a80-689e-11ea-9df6-9298d7882343.png" width="500" height="500" />
-<img src="https://user-images.githubusercontent.com/45048351/76903766-e38cd300-689e-11ea-9f88-32c59e8dd5c2.jpeg" width="500" height="500" />
+<br/>
 
-## Features:
+## <div align="center"> SAMPLE IMAGES </div>
+<img src="https://user-images.githubusercontent.com/45048351/76903735-d7087a80-689e-11ea-9df6-9298d7882343.png" width="500" height="500" align=center/>
+<img src="https://user-images.githubusercontent.com/45048351/76903766-e38cd300-689e-11ea-9f88-32c59e8dd5c2.jpeg" width="500" height="500" align=center/>
+<br/>
+
+## <div align="center"> FEATURES </div>
 ### Perform ray intersections with planes, triangles, and bounding boxes 
 ![figure1_1](https://user-images.githubusercontent.com/45048351/76903259-04085d80-689e-11ea-923b-2315e04deb0c.png)
 ![figure1_2](https://user-images.githubusercontent.com/45048351/76903203-e4713500-689d-11ea-8f86-677c6ecbb5f5.png)
