@@ -33,6 +33,15 @@ Raytracer  that  generates  static  images  from  a  virtual  scene containing l
 <br/>Figure 6: Shows the debug ray bouncing around in the scene. <hr>
 
 ### Implement a simple and advanced acceleration structure.
+| Triangles per box | Render Time (sec) |
+|-------------------|-------------------|
+| 10000             | 78.656            |
+| 1000              | 16.644            |
+| 500               | 8.283             |
+| 100               | 3.5               |
+| 50                | 2.361             |
+| 10                | 1.838             | 
+
 ![Page-3-Image-9](https://user-images.githubusercontent.com/45048351/76905111-98c08a80-68a1-11ea-9633-86d4743bb6d2.png)
 <br/> Figure 7: 10000 triangles/box <br/>
 ![Page-3-Image-10](https://user-images.githubusercontent.com/45048351/76905198-be4d9400-68a1-11ea-92fb-f8d1992a9b30.png)
@@ -55,6 +64,10 @@ Raytracer  that  generates  static  images  from  a  virtual  scene containing l
 <br/>Figure 14: Shows the statistics that is printed out by the ray tracer. <hr>
 
 ### Multicore support of the ray tracer (implementing additional threads)
+| Threads | Render Time (sec) |
+|---------|-------------------|
+| 1       | 113.127           |
+| 10      | 23.404            |
 
 ### Adding support for spherical objects (without using the OpenGL provided functions).
 ![Page-6-Image-19](https://user-images.githubusercontent.com/45048351/76905435-3916af00-68a2-11ea-84f6-7412662ff935.png)
